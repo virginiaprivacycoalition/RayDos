@@ -5,7 +5,8 @@ import java.io.Serializable
 data class SavedRunningScreenData(
     val running: Boolean,
     val messagesAttempted: Int,
-    val messagesSent: Int,
     val messagesDelivered: Int,
-    val startTime: Long) : Serializable {
+    val messagesSent: Int,
+    val startTime: Long
+) : Serializable {
 }

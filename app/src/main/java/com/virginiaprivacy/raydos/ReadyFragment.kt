@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -11,8 +12,9 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.annotation.RequiresApi
-import androidx.core.app.ServiceCompat
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import androidx.lifecycle.observe
 import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
@@ -27,59 +29,74 @@ class ReadyFragment() : Fragment() {
 
     private val sentReportReceiver by lazy { MessageReportReceiver() }
     private val deliveredReportReceiver by lazy { MessageReportReceiver() }
-    private var running = false
-
+    private var savedState: Bundle? = null
+    private val serviceRunning = MutableLiveData(false)
+    private val messagesAttempted = MutableLiveData(0)
+    private val messagesDelivered = MutableLiveData(0)
+    private val messagesActuallySent = MutableLiveData(0)
+    private val target = MutableLiveData("")
     private fun getTextViewString(id: Int) =
         requireView().findViewById<TextView>(id).text.toString()
 
     private fun getTxtView(id: Int) = requireView().findViewById<TextView>(id)
 
 
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        savedInstanceState?.let {
-//            val saved: SavedRunningScreenData = it.get(STATE) as SavedRunningScreenData
-//            running = true
-//            getTxtView(R.id.messages_sent_value).text = saved.messagesAttempted.toString()
-//        }
-//    }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        savedInstanceState?.let {
+            val saved: SavedRunningScreenData = it.get(STATE) as SavedRunningScreenData
+            running = true
+            getTxtView(R.id.messages_sent_value).text = saved.messagesAttempted.toString()
+        }
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putSerializable(STATE, SavedRunningScreenData(
-            running,
-            getTextViewString(R.id.messages_sent_value).toInt(),
-            getTextViewString(R.id.messages_actually_sent_value).toInt(),
-            getTextViewString(R.id.messages_delivered_value).toInt(),
-            0
-        ))
         super.onSaveInstanceState(outState)
+
+        outState.putBundle(
+            STATE, if (savedState != null) {
+                savedState
+            } else {
+                Bundle().also {
+                    it.putSerializable(
+                        STATE, save()
+                    )
+                }
+            })
+    }
+
+    private fun save(): SavedRunningScreenData {
+        return SavedRunningScreenData(
+            serviceRunning.value!!,
+            messagesAttempted.value!!,
+            messagesDelivered.value!!,
+            messagesActuallySent.value!!,
+            0
+        )
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         loadSaved(savedInstanceState)
+        listenForUpdates()
     }
 
     private fun loadSaved(savedInstanceState: Bundle?) {
+        Log.d("ReadyFragment", savedInstanceState.toString())
         if (savedInstanceState != null) {
             val saved: SavedRunningScreenData =
                 savedInstanceState.getSerializable(STATE) as SavedRunningScreenData
-            requireView().findViewById<Button>(R.id.start_button).text = with(saved.running) {
-                if (this) {
-                    return@with getString(R.string.stop)
-                } else {
-                    return@with getString(R.string.start)
-                }
-            }
-            getTxtView(R.id.messages_sent_value).text = saved.messagesAttempted.toString()
-            getTxtView(R.id.messages_actually_sent_value).text = saved.messagesSent.toString()
-            getTxtView(R.id.messages_delivered_value).text = saved.messagesDelivered.toString()
+            addObservers()
+            serviceRunning.value = saved.running
+            messagesAttempted.value = saved.messagesAttempted
+            messagesActuallySent.value = saved.messagesSent
+            messagesDelivered.value = saved.messagesDelivered
         }
     }
 
     override fun onCreateView(
-            inflater: LayoutInflater, container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.ready_fragment, container, false)
     }
@@ -102,8 +119,14 @@ class ReadyFragment() : Fragment() {
         val startRequest = serviceIntent(ActionType.START_SERVICE)
         val stopRequest = serviceIntent(ActionType.STOP_SERVICE)
 
-        requireActivity().registerReceiver(sentReportReceiver, IntentFilter(SmsSender.MESSAGE_SENT_INTENT))
-        requireActivity().registerReceiver(deliveredReportReceiver, IntentFilter(SmsSender.MESSAGE_DELIVERED_INTENT))
+        requireActivity().registerReceiver(
+            sentReportReceiver,
+            IntentFilter(SmsSender.MESSAGE_SENT_INTENT)
+        )
+        requireActivity().registerReceiver(
+            deliveredReportReceiver,
+            IntentFilter(SmsSender.MESSAGE_DELIVERED_INTENT)
+        )
         sentReportReceiver.eventsReceived.observe(viewLifecycleOwner, Observer {
             messagesActuallySent.text = it.toString()
         })
@@ -113,30 +136,45 @@ class ReadyFragment() : Fragment() {
         })
 
         startButton.setOnClickListener {
-
-            if (running) {
-                running = false
+            if (serviceRunning.value!!) {
+                serviceRunning.value = false
                 (activity as MainActivity).stopService(stopRequest)
-                startButton.text = getString(R.string.start)
-            }
-            else {
-                running = true
-                startButton.text = getString(R.string.stop)
-
+            } else {
+                serviceRunning.value = true
                 (requireActivity() as MainActivity).startForegroundService(startRequest)
-                listenForUpdates(messagesSentValue, targetTextValue)
             }
         }
 
 
-
     }
 
-    private fun listenForUpdates(
-        messagesSentValue: TextView,
-        targetTextValue: TextView
-    ) {
+    override fun onDestroyView() {
+        super.onDestroyView()
+    }
 
+    private fun addObservers() {
+        messagesAttempted.observe(viewLifecycleOwner) {
+            getTxtView(R.id.messages_sent_value).text =
+                it.toString()
+        }
+        messagesDelivered.observe(viewLifecycleOwner) {
+            getTxtView(R.id.messages_delivered_value).text = it.toString()
+        }
+        messagesActuallySent.observe(viewLifecycleOwner) {
+            getTxtView(R.id.messages_actually_sent_value).text = it.toString()
+        }
+        serviceRunning.observe(viewLifecycleOwner) {
+            view?.findViewById<Button>(R.id.start_button)?.text = when (it) {
+                true -> R.string.stop.toString()
+                false -> R.string.start.toString()
+            }
+        }
+        target.observe(viewLifecycleOwner) {
+            requireView().findViewById<TextView>(R.id.target_text_value).text = it
+        }
+    }
+
+    private fun listenForUpdates() {
         val channel = SmsSender.eventBus.openSubscription()
         val iterator = channel.iterator()
         MainScope().launch {
@@ -145,11 +183,11 @@ class ReadyFragment() : Fragment() {
                 with(event) {
                     when (this::class) {
                         MessageSentEvent::class -> {
-                            messagesSentValue.text =
-                                (this as MessageSentEvent).messageNumber.toString()
+                            messagesAttempted.value =
+                                (this as MessageSentEvent).messageNumber
                         }
                         TargetNumberGeneratedEvent::class -> {
-                            targetTextValue.text = (this as TargetNumberGeneratedEvent).destination
+                            target.value = (this as TargetNumberGeneratedEvent).destination
                         }
                     }
                 }
