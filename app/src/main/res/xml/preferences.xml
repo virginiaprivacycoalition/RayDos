@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="random_target_switch"
+        android:summary="@string/random_target_switch_summary"
+        android:title="@string/random_target_switch_title"
+        app:disableDependentsState="true" />
+    <EditTextPreference
+        android:dependency="random_target_switch"
+        android:key="target_number_text"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:summary="@string/target_number_text_summary"
+        android:title="@string/target_number_text_title" />
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="random_text_switch"
+        android:title="@string/random_text_title"
+        android:summary="@string/random_text_summary"
+        app:disableDependentsState="true"/>
+    <EditTextPreference
+        android:defaultValue="@string/default_message_text_default_value"
+        android:dependency="random_text_switch"
+        android:key="default_message_text"
+        android:selectAllOnFocus="true"
+        android:singleLine="false"
+        android:title="@string/default_message_text_title"
+        android:summary="@string/default_message_text_summary"/>
+    <ListPreference
+        android:key="delay_between_messages"
+        android:title="@string/delay_between_messages_title"
+        android:summary="@string/delay_between_messages_summary"
+        android:entries="@array/delay_entries"
+        android:entryValues="@array/delay_values"
+        android:defaultValue="1000"/>
+</PreferenceScreen>
