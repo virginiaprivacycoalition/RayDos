@@ -1,0 +1,37 @@
+<resources>
+    <!-- Reply Preference -->
+    <string-array name="reply_entries">
+        <item>Reply</item>
+        <item>Reply to all</item>
+    </string-array>
+
+    <string-array name="reply_values">
+        <item>reply</item>
+        <item>reply_all</item>
+    </string-array>
+
+    <string-array name="delay_entries">
+        <item>0.1 Seconds</item>
+        <item>0.25 Seconds</item>
+        <item>0.5 Seconds</item>
+        <item>0.75 Seconds</item>
+        <item>1 Second</item>
+        <item>1.5 Seconds</item>
+        <item>2 Seconds</item>
+        <item>3 Seconds</item>
+        <item>5 Seconds</item>
+        <item>10 Seconds</item>
+    </string-array>
+
+    <string-array name="delay_values">
+        <item>100</item>
+        <item>250</item>
+        <item>500</item>
+        <item>750</item>
+        <item>1000</item>
+        <item>1500</item>
+        <item>2000</item>
+        <item>3000</item>
+        <item>5000</item>
+        <item>10000</item>    </string-array>
+</resources>
