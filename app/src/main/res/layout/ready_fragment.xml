@@ -6,85 +6,159 @@
     android:layout_height="match_parent"
     tools:context=".ReadyFragment">
 
-    <TextView
-        android:id="@+id/target_text_label"
-        android:layout_width="52dp"
-        android:layout_height="19dp"
-        android:text="@string/target_label_text"
-        app:layout_constraintBottom_toTopOf="@id/button_second"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.044"
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <Button
-        android:id="@+id/button_second"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/previous"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/target_text_label" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-    <Button
-        android:id="@+id/start_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/start"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/target_text_label"
-        app:layout_constraintVertical_bias="0.327" />
+            <TextView
+                android:id="@+id/messages_sent_label"
+                style="@style/Base.Widget.MaterialComponents.TextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/messages_sent_label_description"
+                android:fontFamily="monospace"
+                android:labelFor="@id/messages_sent_value"
+                android:text="@string/messages_sent_label"
+                android:textSize="14sp" />
 
-    <TextView
-        android:id="@+id/target_text_value"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="220dp"
-        app:layout_constraintStart_toEndOf="@+id/target_text_label"
-        app:layout_constraintTop_toTopOf="parent" />
+            <TextView
+                android:id="@+id/messages_sent_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
 
-    <TextView
-        android:id="@+id/message_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="12dp"
-        android:text="@string/message_text"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/target_text_label" />
+        </TableRow>
 
-    <TextView
-        android:id="@+id/message_text_value"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="252dp"
-        android:singleLine="false"
-        app:layout_constraintStart_toEndOf="@+id/message_text"
-        app:layout_constraintTop_toTopOf="parent" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/messages_sent_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="68dp"
-        android:layout_marginTop="68dp"
-        android:text="@string/messages_sent_label"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+            <TextView
+                android:id="@+id/target_text_label"
+                android:contentDescription="@string/target_label_content"
+                android:fontFamily="monospace"
+                android:labelFor="@id/target_text_value"
+                android:text="@string/target_label_text"
+                android:textSize="14sp" />
 
-    <TextView
-        android:id="@+id/messages_sent_value"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="68dp"
-        app:layout_constraintStart_toEndOf="@+id/messages_sent_label"
-        app:layout_constraintTop_toTopOf="parent" />
+            <TextView
+                android:id="@+id/target_text_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/message_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/the_contents_of_the_next_sms_message_to_be_sent"
+                android:fontFamily="monospace"
+                android:labelFor="@id/message_text_value"
+                android:text="@string/message_text"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/message_text_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/the_sms_message_content"
+                android:fontFamily="monospace"
+                android:singleLine="false"
+                android:textSize="14sp"  />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <TextView
+                android:id="@+id/messages_actually_sent_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/number_of_messages_that_have_been_actually_sent_content"
+                android:fontFamily="monospace"
+                android:labelFor="@id/messages_actually_sent_value"
+                android:text="@string/messages_actually_sent_label"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/messages_actually_sent_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <TextView
+                android:id="@+id/messages_delivered_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/messages_delivered_label_content"
+                android:fontFamily="monospace"
+                android:labelFor="@id/messages_delivered_value"
+                android:text="@string/messages_confirmed_to_be_delivered"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/messages_delivered_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/the_number_of_delivered_messages"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <Button
+                android:id="@+id/start_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/start_running_raydos"
+                android:text="@string/start" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="54dp">
+
+            <View
+                android:id="@+id/divider"
+                android:layout_width="match_parent"
+                android:layout_height="10dp"
+                android:background="?android:attr/listDivider" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <Button
+                android:id="@+id/button_second"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center|center_horizontal|center_vertical"
+                android:text="@string/previous" />
+        </TableRow>
+    </TableLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
