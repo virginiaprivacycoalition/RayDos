@@ -29,35 +29,32 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
         findViewById<Button>(R.id.action_settings)
-        findViewById<FloatingActionButton>(R.id.fab).setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
-        }
-        if (savedInstanceState != null) {
-            supportFragmentManager.getFragment(savedInstanceState, "ready_fragment")?.let {
-                supportFragmentManager.beginTransaction()
-                    .replace(R.id.nav_host_fragment_container,
-                        it)
-                    .commit()
-                return
-            }
-        }
+
+//        if (savedInstanceState != null) {
+//            supportFragmentManager.getFragment(savedInstanceState, "ready_fragment")?.let {
+//                supportFragmentManager.beginTransaction()
+//                    .replace(R.id.nav_host_fragment_container,
+//                        it)
+//                    .commit()
+//                return
+//            }
+//        }
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
 
-        GlobalScope.launch {
-            val iterator = SmsSender.eventBus.openSubscription().iterator()
-            while (iterator.hasNext()) {
-                val event = iterator.next()
-                when (event::class) {
-                    ServiceStartedEvent::class -> {
-
-
-                    }
-                }
-            }
-
-
-        }
+//        GlobalScope.launch {
+//            val iterator = SmsSender.eventBus.openSubscription().iterator()
+//            while (iterator.hasNext()) {
+//                val event = iterator.next()
+//                when (event::class) {
+//                    ServiceStartedEvent::class -> {
+//
+//
+//                    }
+//                }
+//            }
+//
+//
+//        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

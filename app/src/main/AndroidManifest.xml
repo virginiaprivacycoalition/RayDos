@@ -28,7 +28,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".SmsSender" />
+        <service android:name=".services.SmsSender" />
     </application>
 
 </manifest>

@@ -1,4 +1,4 @@
-package com.virginiaprivacy.raydos
+package com.virginiaprivacy.raydos.services
 
 import android.app.*
 import android.content.Context
@@ -7,36 +7,26 @@ import android.os.Build
 import android.os.IBinder
 import android.telephony.SmsManager
 import android.util.Log
-import android.util.TimeUtils
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.work.Worker
-import androidx.work.WorkerParameters
+import com.virginiaprivacy.raydos.io.ActionType
+import com.virginiaprivacy.raydos.R
+import com.virginiaprivacy.raydos.io.StartRequest
+import com.virginiaprivacy.raydos.events.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
-import com.virginiaprivacy.raydos.events.Event
-import com.virginiaprivacy.raydos.events.MessageSentEvent
-import com.virginiaprivacy.raydos.events.ServiceStartedEvent
-import com.virginiaprivacy.raydos.events.TargetNumberGeneratedEvent
 import java.io.Serializable
 import java.time.Duration
-import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalUnit
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.concurrent.fixedRateTimer
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.system.measureTimeMillis
-import kotlin.time.DurationUnit
 
-class SmsSender(
-) : Serializable, Service() {
+class SmsSender : Serializable, Service()
+{
 
     private val startTime = System.currentTimeMillis()
     private var startRequest: StartRequest? = null
@@ -55,7 +45,7 @@ class SmsSender(
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)!!
 
 
-    val running = AtomicBoolean(false)
+    private val running = AtomicBoolean(false)
 
     var messagesSent = 0
 
@@ -63,41 +53,70 @@ class SmsSender(
         SmsManager.getDefault()
     }
 
-    var currentTarget = 0
-    var upcomingTarget = 0
+    private var currentTarget = 0
+        set(value)
+        {
+            field = value
+            scope.launch { eventBus.send(TargetNumberGeneratedEvent(value.toString())) }
+        }
+    private var upcomingTarget = 0
+        set(value)
+        {
+            field = value
+            scope.launch { eventBus.send(TargetNumberGeneratedEvent(value.toString())) }
+        }
+    private var currentMessageText = ""
+        set(value)
+        {
+            field = value
+            scope.launch { eventBus.send(TextGeneratedEvent(value)) }
+        }
+    private var delay = 1000
 
 
-    override fun onBind(p0: Intent?): IBinder? {
+    override fun onBind(p0: Intent?): IBinder?
+    {
         return null
     }
 
-    override fun onCreate() {
+    override fun onCreate()
+    {
         super.onCreate()
         with(getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            {
                 this.createNotificationChannel(channel)
             }
         }
         startForeground(RAYDOS_NOTIFICATION_ID, getNotification().build())
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int
+    {
         intent?.let {
-            if (it.action == ActionType.START_SERVICE) {
-                if (it.getSerializableExtra("start_request") is StartRequest) {
+            if (it.action == ActionType.START_SERVICE)
+            {
+                if (it.getSerializableExtra("start_request") is StartRequest)
+                {
                     this.startRequest = it.getSerializableExtra("start_request") as StartRequest
-                    if (!running.get()) {
-                        if (startRequest?.useRandomTarget!!) {
+                    if (!running.get())
+                    {
+                        if (startRequest?.useRandomTarget!!)
+                        {
                             currentTarget = getRandomNumber().toInt()
                         }
-                        GlobalScope.launch {
-                            running.set(true)
+                        if (!startRequest?.useRandomText!!)
+                        {
+                            currentMessageText = startRequest?.nonRandomText.toString()
+                        }
+                        scope.launch {
                             start()
                         }
                     }
                 }
             }
-            if (it.action == ActionType.STOP_SERVICE) {
+            if (it.action == ActionType.STOP_SERVICE)
+            {
                 stopSelf(startId)
                 running.set(false)
                 cancel()
@@ -106,44 +125,42 @@ class SmsSender(
         return START_STICKY
     }
 
-    override fun onDestroy() {
+    override fun onDestroy()
+    {
         super.onDestroy()
         running.set(false)
         scope.cancel()
     }
 
 
-    private suspend fun start() {
-        if (running.get()) {
-            Log.i("1312", "Service already running!")
-            return
+    private suspend fun start()
+    {
+        if (fireStartEvent()) return
+        if (startRequest != null)
+        {
+            currentTarget = when (startRequest!!.useRandomTarget)
+            {
+                true -> getRandomNumber().toInt()
+                else -> startRequest?.target!!.toInt()
+            }
+            currentMessageText = when (startRequest!!.useRandomText)
+            {
+                true -> TODO("Random String generation fun")
+                else -> startRequest?.nonRandomText!!
+            }
+            delay = if (startRequest?.delayMillis != null) startRequest?.delayMillis!! else delay
         }
-        running.set(true)
-        eventBus.send(ServiceStartedEvent(startTime, getNotification()))
-
-        while (running.get()) {
+        while (running.get())
+        {
             scope.launch {
-                if (startRequest != null) {
-                    with(startRequest!!) {
-                        if (!useRandomTarget && !useRandomText) {
-                            target?.let { target ->
-                                nonRandomText?.let { text ->
-                                    sendMessage(target, text)
-                                    eventBus.send(TargetNumberGeneratedEvent(target))
-                                }
-                            }
-                        }
-                        if (useRandomTarget && !useRandomText) {
-                            awaitAll(
-                                async {
-                                    if (nonRandomText != null) {
-                                        sendMessage(currentTarget.toString(), nonRandomText)
-                                    }
-                                }, async {
-                                    rotateTargetNumber()
-                                })
-                        }
-                    }
+                sendMessage(currentTarget.toString(), currentMessageText)
+                if (startRequest?.useRandomTarget!!)
+                {
+                    currentTarget = getRandomNumber().toInt()
+                }
+                if (startRequest?.useRandomText!!)
+                {
+                    currentMessageText = "this is the current message text"
                 }
             }
             delay(startRequest!!.delayMillis.toLong())
@@ -151,7 +168,21 @@ class SmsSender(
     }
 
 
-    private suspend fun rotateTargetNumber() {
+    private suspend fun fireStartEvent(): Boolean
+    {
+        if (running.get())
+        {
+            Log.i("1312", "Service already running!")
+            return true
+        }
+        running.set(true)
+        eventBus.send(ServiceStartedEvent(startTime, getNotification()))
+        return false
+    }
+
+
+    private suspend fun rotateTargetNumber()
+    {
         upcomingTarget = getRandomNumber().toInt()
         val event = TargetNumberGeneratedEvent(
             upcomingTarget.toString()
@@ -160,29 +191,41 @@ class SmsSender(
         currentTarget = upcomingTarget
     }
 
-    private fun cancel() {
+    private fun cancel()
+    {
         running.set(false)
         Log.d(this::class.qualifiedName, "Stopping service $this")
         stopSelf()
+        scope.cancel()
     }
 
-    private fun runtime(): String {
+    private fun runtime(): String
+    {
 
-        val runtime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val runtime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        {
             Duration.of(System.currentTimeMillis(), ChronoUnit.MILLIS)
-        } else {
+        }
+        else
+        {
             val dur = System.currentTimeMillis() - startTime
             var seconds = dur / 1000.0
             var minutes = seconds / 60
             var hours = minutes / 60
-            if (hours >= 1) {
+            if (hours >= 1)
+            {
                 minutes -= (60 * hours)
-            } else {
+            }
+            else
+            {
                 hours = 0.0
             }
-            if (minutes >= 1) {
+            if (minutes >= 1)
+            {
                 seconds -= (60 * minutes)
-            } else {
+            }
+            else
+            {
                 minutes = 0.0
             }
             return "${hours}:$minutes:$seconds"
@@ -191,18 +234,21 @@ class SmsSender(
 
     }
 
-    private fun getRandomNumber(): String {
+    private fun getRandomNumber(): String
+    {
         var number = ""
         val millis = measureTimeMillis {
-            while (number.length < 9) {
+            while (number.length < 9)
+            {
                 number += Random.nextInt(0..9)
             }
         }
-        println("number generated in ${millis / 1000.00} seconds")
+        Log.d("SmsSender", "number generated in ${millis / 1000.00} seconds")
         return number
     }
 
-    private suspend fun sendMessage(destination: String, text: String) {
+    private suspend fun sendMessage(destination: String, text: String)
+    {
         val sentIntent = PendingIntent.getBroadcast(
             applicationContext, 0, Intent(
                 MESSAGE_SENT_INTENT
@@ -213,11 +259,14 @@ class SmsSender(
                 MESSAGE_DELIVERED_INTENT
             ), 0
         )
+
         smsManager.sendTextMessage(destination, null, text, sentIntent, deliveredIntent)
         fireSentEvent()
     }
 
-    private suspend fun fireSentEvent() {
+
+    private suspend fun fireSentEvent()
+    {
         eventBus.send(
             MessageSentEvent(
                 messagesSent++
@@ -225,7 +274,8 @@ class SmsSender(
         )
     }
 
-    companion object {
+    companion object
+    {
         const val MESSAGE_SENT_INTENT = "SMS_SENT_ACTION"
         const val MESSAGE_DELIVERED_INTENT = "SMS_DELIVERED_ACTION"
         const val RAYDOS_NOTIFICATION_ID = 11913
@@ -234,6 +284,7 @@ class SmsSender(
 
 
 }
+
 
 
 
