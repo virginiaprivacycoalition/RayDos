@@ -8,7 +8,9 @@ data class StartRequest(
     val useRandomText: Boolean,
     val delayMillis: Int,
     val target: String? = null,
-    val nonRandomText: String? = null
+    val nonRandomText: String? = null,
+    val customSmsSource: Boolean = false,
+    val customSourceTarget: String? = null
 ) : Serializable
 
 interface ActionType

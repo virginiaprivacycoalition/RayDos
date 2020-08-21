@@ -41,4 +41,21 @@
             android:summary="@string/default_message_text_summary"
             android:title="@string/default_message_text_title" />
     </PreferenceCategory>
+    <PreferenceCategory
+        android:id="@+id/experimental_preference_category"
+        android:title="@string/experimental_preference_title">
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="sms_source"
+            android:summary="@string/sms_source_switch_summary"
+            android:title="@string/sms_source_title" />
+        <EditTextPreference
+            android:defaultValue="@string/sms_source_default_value"
+            android:dependency="sms_source"
+            android:key="sms_source_manual"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/sms_source_text_value" />
+    </PreferenceCategory>
 </PreferenceScreen>

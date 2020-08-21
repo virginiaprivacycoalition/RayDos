@@ -3,21 +3,25 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.1"
+    compileSdkVersion 29
+    buildToolsVersion '29.0.2'
 
     defaultConfig {
         applicationId "com.virginiaprivacy.raydos"
         minSdkVersion 19
-        targetSdkVersion 30
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0.0-BETA"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        all{
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -34,6 +38,8 @@ dependencies {
     def lifecycle_version = "2.2.0"
     def activity_version = "1.2.0-alpha07"
 
+    implementation 'app.cash.copper:copper-flow:1.0.0'
+    implementation("com.louiscad.splitties:splitties-fun-pack-android-material-components-with-views-dsl:3.0.0-alpha06")
     implementation "androidx.activity:activity-ktx:$activity_version"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
@@ -48,8 +54,10 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui-ktx:2.3.0'
     implementation 'androidx.preference:preference:1.1.1'
     implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"
+    implementation "androidx.work:work-runtime-ktx:2.4.0"
 
-    testImplementation 'junit:junit:4.12'
+
+    testImplementation 'junit:junit:4.13'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 

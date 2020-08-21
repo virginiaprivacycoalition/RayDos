@@ -1,14 +1,26 @@
 package com.virginiaprivacy.raydos.services
 
+import android.Manifest
 import android.app.*
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.database.Cursor
+import android.hardware.ConsumerIrManager
 import android.os.Build
 import android.os.IBinder
-import android.telephony.SmsManager
+import android.os.strictmode.NonSdkApiUsedViolation
+import android.provider.Telephony
+import android.telephony.*
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.MutableLiveData
+import app.cash.copper.flow.observeQuery
+import com.virginiaprivacy.raydos.MainActivity
 import com.virginiaprivacy.raydos.io.ActionType
 import com.virginiaprivacy.raydos.R
 import com.virginiaprivacy.raydos.io.StartRequest
@@ -16,7 +28,11 @@ import com.virginiaprivacy.raydos.events.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
+import splitties.permissions.requestPermission
 import java.io.Serializable
+import java.lang.reflect.Method
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.Executors
@@ -34,7 +50,7 @@ class SmsSender : Serializable, Service()
 
     @RequiresApi(Build.VERSION_CODES.O)
     private val channel: NotificationChannel =
-        NotificationChannel("1312", "RayDos", NotificationManager.IMPORTANCE_DEFAULT)
+        NotificationChannel("1312", "RayDos is currently running in the background", NotificationManager.IMPORTANCE_DEFAULT)
 
 
     private fun getNotification() = NotificationCompat.Builder(this)
@@ -42,6 +58,9 @@ class SmsSender : Serializable, Service()
         .setContentTitle(getString(R.string.notification_title))
         .setContentText("Running")
         .setChannelId("1312")
+        .setUsesChronometer(true)
+        .setWhen(startTime)
+        .setOngoing(true)
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)!!
 
 
@@ -53,17 +72,24 @@ class SmsSender : Serializable, Service()
         SmsManager.getDefault()
     }
 
-    private var currentTarget = 0
+    private val telephony by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        getSystemService(TelephonyManager::class.java)
+    }
+    else {
+        TODO("VERSION.SDK_INT < M")
+    }
+    }
+
+    private var useSourceField = false
+
+    private var currentSource = ""
+
+    private var currentTarget: String = ""
         set(value)
         {
             field = value
-            scope.launch { eventBus.send(TargetNumberGeneratedEvent(value.toString())) }
-        }
-    private var upcomingTarget = 0
-        set(value)
-        {
-            field = value
-            scope.launch { eventBus.send(TargetNumberGeneratedEvent(value.toString())) }
+            scope.launch { eventBus.send(TargetNumberGeneratedEvent(value)) }
         }
     private var currentMessageText = ""
         set(value)
@@ -72,6 +98,19 @@ class SmsSender : Serializable, Service()
             scope.launch { eventBus.send(TextGeneratedEvent(value)) }
         }
     private var delay = 1000
+
+    private val currentRuntime =
+        MutableLiveData("Running for ${runtime()}. Sent $messagesSent messages")
+
+    private val outbox by lazy {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                contentResolver.observeQuery(Telephony.Sms.Outbox.CONTENT_URI, arrayOf(Telephony.Sms.Outbox._ID, Telephony.Sms.Outbox.SERVICE_CENTER, Telephony.Sms.Outbox.STATUS, Telephony.Sms.Outbox.CREATOR, Telephony.Sms.Outbox.SERVICE_CENTER ), null, null)
+            }
+            else {
+                Log.e(javaClass.name, "${Build.VERSION_CODES.O} SDK or higher is required to utilize this feature")
+                throw IllegalStateException()
+            }
+    }
 
 
     override fun onBind(p0: Intent?): IBinder?
@@ -88,7 +127,10 @@ class SmsSender : Serializable, Service()
                 this.createNotificationChannel(channel)
             }
         }
-        startForeground(RAYDOS_NOTIFICATION_ID, getNotification().build())
+        val notification = getNotification().build()
+        startForeground(RAYDOS_NOTIFICATION_ID, notification)
+
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int
@@ -103,11 +145,18 @@ class SmsSender : Serializable, Service()
                     {
                         if (startRequest?.useRandomTarget!!)
                         {
-                            currentTarget = getRandomNumber().toInt()
+                            currentTarget = getRandomNumber()
                         }
                         if (!startRequest?.useRandomText!!)
                         {
                             currentMessageText = startRequest?.nonRandomText.toString()
+                        }
+                        startRequest?.customSmsSource.let { use ->
+                            if (use != null)
+                            {
+                                useSourceField = use
+                                currentSource = startRequest?.customSourceTarget.toString()
+                            }
                         }
                         scope.launch {
                             start()
@@ -132,16 +181,34 @@ class SmsSender : Serializable, Service()
         scope.cancel()
     }
 
+    private fun dumpTelephonyInfo() {
+        if (ActivityCompat.checkSelfPermission(this,
+                                               Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+        telephony.allCellInfo.forEach {
+            println(it)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            telephony.carrierConfig.keySet().forEach {
+                println("$it -> ${telephony.carrierConfig[it]}")
+            }
+        }
+    }
+
 
     private suspend fun start()
     {
         if (fireStartEvent()) return
+        outbox.collect {
+            it.run().columnNames.associateWith {  }
+        }
         if (startRequest != null)
         {
             currentTarget = when (startRequest!!.useRandomTarget)
             {
-                true -> getRandomNumber().toInt()
-                else -> startRequest?.target!!.toInt()
+                true -> getRandomNumber()
+                else -> startRequest?.target!!
             }
             currentMessageText = when (startRequest!!.useRandomText)
             {
@@ -156,7 +223,7 @@ class SmsSender : Serializable, Service()
                 sendMessage(currentTarget.toString(), currentMessageText)
                 if (startRequest?.useRandomTarget!!)
                 {
-                    currentTarget = getRandomNumber().toInt()
+                    currentTarget = getRandomNumber()
                 }
                 if (startRequest?.useRandomText!!)
                 {
@@ -180,17 +247,6 @@ class SmsSender : Serializable, Service()
         return false
     }
 
-
-    private suspend fun rotateTargetNumber()
-    {
-        upcomingTarget = getRandomNumber().toInt()
-        val event = TargetNumberGeneratedEvent(
-            upcomingTarget.toString()
-        )
-        eventBus.send(event)
-        currentTarget = upcomingTarget
-    }
-
     private fun cancel()
     {
         running.set(false)
@@ -201,7 +257,6 @@ class SmsSender : Serializable, Service()
 
     private fun runtime(): String
     {
-
         val runtime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         {
             Duration.of(System.currentTimeMillis(), ChronoUnit.MILLIS)
@@ -247,8 +302,14 @@ class SmsSender : Serializable, Service()
         return number
     }
 
-    private suspend fun sendMessage(destination: String, text: String)
+    private suspend fun sendMessage(destination: String, text: String, source: String? = null)
     {
+        if (messagesSent > 10) {
+
+//            while (cursor?.moveToNext() == true) {
+//                println(cursor.getTelephony.Sms.Outbox)
+//            }
+        }
         val sentIntent = PendingIntent.getBroadcast(
             applicationContext, 0, Intent(
                 MESSAGE_SENT_INTENT
@@ -259,8 +320,13 @@ class SmsSender : Serializable, Service()
                 MESSAGE_DELIVERED_INTENT
             ), 0
         )
+        var src: String? = when (useSourceField)
+        {
+            true -> currentSource
+            else -> null
+        }
 
-        smsManager.sendTextMessage(destination, null, text, sentIntent, deliveredIntent)
+        smsManager.sendTextMessage(destination, src, text, sentIntent, deliveredIntent)
         fireSentEvent()
     }
 
@@ -284,7 +350,5 @@ class SmsSender : Serializable, Service()
 
 
 }
-
-
 
 
