@@ -55,4 +55,10 @@
     <string name="messages_delivered_label_content">The number of SMS messages that produced delivery reports</string>
     <string name="the_number_of_delivered_messages">The number of delivered messages</string>
     <string name="start_running_raydos">Start running RayDos</string>
+    <string name="sms_source_switch_summary">If enabled, this allows you to configure the source value of the SMS messages sent. This may result in failure to send with some carriers</string>
+    <string name="sms_source_title">Set SMS Source</string>
+    <string name="sms_source_default_value">1234567890</string>
+    <string name="sms_source_text_value">Edit source value</string>
+    <string name="experimental_preference_title">Experimental</string>
+    <string name="disabled_text">disabled</string>
 </resources>

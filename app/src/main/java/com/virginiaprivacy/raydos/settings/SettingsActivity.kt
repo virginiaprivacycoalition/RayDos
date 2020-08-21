@@ -20,5 +20,8 @@ class SettingsActivity : AppCompatActivity() {
         const val KEY_PREF_RANDOM_TEXT_SWITCH = "random_text_switch"
         const val KEY_PREF_DEFAULT_MESSAGE_TEXT = "default_message_text"
         const val KEY_PREF_DELAY_BETWEEN_MESSAGES = "delay_between_messages"
+        const val KEY_PREF_USE_CUSTOM_SOURCE = "sms_source"
+        const val KEY_PREF_CUSTOM_SOURCE = "sms_source_manual"
+
     }
 }
