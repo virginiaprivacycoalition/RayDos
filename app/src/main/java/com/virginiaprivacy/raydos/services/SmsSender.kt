@@ -1,41 +1,31 @@
 package com.virginiaprivacy.raydos.services
 
 import android.Manifest
-import android.app.*
-import android.content.ContentResolver
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.database.Cursor
-import android.hardware.ConsumerIrManager
 import android.os.Build
 import android.os.IBinder
-import android.os.strictmode.NonSdkApiUsedViolation
 import android.provider.Telephony
-import android.telephony.*
+import android.telephony.SmsManager
+import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.asLiveData
-import app.cash.copper.flow.mapToList
-import app.cash.copper.flow.observeQuery
-import com.virginiaprivacy.raydos.MainActivity
-import com.virginiaprivacy.raydos.io.ActionType
 import com.virginiaprivacy.raydos.R
-import com.virginiaprivacy.raydos.io.StartRequest
 import com.virginiaprivacy.raydos.events.*
+import com.virginiaprivacy.raydos.io.ActionType
+import com.virginiaprivacy.raydos.io.StartRequest
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
-import splitties.permissions.requestPermission
 import java.io.Serializable
-import java.lang.reflect.Method
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.Executors
@@ -60,14 +50,14 @@ class SmsSender : Serializable, Service() {
 
 
     private fun getNotification() = NotificationCompat.Builder(this)
-        .setSmallIcon(R.drawable.fist)
-        .setContentTitle(getString(R.string.notification_title))
-        .setContentText("Running")
-        .setChannelId("1312")
-        .setUsesChronometer(true)
-        .setWhen(startTime)
-        .setOngoing(true)
-        .setPriority(NotificationCompat.PRIORITY_DEFAULT)!!
+            .setSmallIcon(R.drawable.fist)
+            .setContentTitle(getString(R.string.notification_title))
+            .setContentText("Running")
+            .setChannelId("1312")
+            .setUsesChronometer(true)
+            .setWhen(startTime)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)!!
 
 
     private val running = AtomicBoolean(false)
@@ -81,7 +71,8 @@ class SmsSender : Serializable, Service() {
     private val telephony by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             getSystemService(TelephonyManager::class.java)
-        } else {
+        }
+        else {
             TODO("VERSION.SDK_INT < M")
         }
     }
@@ -107,25 +98,16 @@ class SmsSender : Serializable, Service() {
 
     private val outbox by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            contentResolver.observeQuery(
-                Telephony.Sms.Outbox.CONTENT_URI,
-                arrayOf(
-                    Telephony.Sms.Outbox._ID,
-                    Telephony.Sms.Outbox.SERVICE_CENTER,
-                    Telephony.Sms.Outbox.STATUS,
-                    Telephony.Sms.Outbox.CREATOR,
-                    Telephony.Sms.Outbox.SERVICE_CENTER
-                ),
-                null,
-                null
-            )
-        } else {
-            Log.e(
-                javaClass.name,
-                "${Build.VERSION_CODES.O} SDK or higher is required to utilize this feature"
-            )
-            throw IllegalStateException()
+
+            contentResolver.acquireContentProviderClient(Telephony.Sms.CONTENT_URI)
+                    ?.query(Telephony.Sms.CONTENT_URI, null, null, null, null)
+                    .let { return@lazy it }
         }
+        Log.e(
+            javaClass.name,
+            "${Build.VERSION_CODES.O} SDK or higher is required to utilize this feature"
+        )
+        throw IllegalStateException()
     }
 
 
@@ -205,19 +187,25 @@ class SmsSender : Serializable, Service() {
 
 
     private suspend fun start() {
-
         if (fireStartEvent()) return
-        val mapToList = outbox.mapToList { cursor ->
-            cursor.columnNames?.associateWith {
-                cursor.getString(cursor.getColumnIndex(it))
-            }?.entries
-        }.collect { list ->
-            repeat(list.size) { i: Int ->
-                list[i]?.forEach {
-                    Log.i("Outbox", "Column: ${it.key} value: ${it.value}")
+        coroutineScope {
+            withContext(Dispatchers.IO) {
+                measureTimeMillis {
+                    outbox!!.use { o ->
+                        o.moveToFirst()
+                        repeat(o.count) {
+                            val associateWith: Map<String, String> =
+                                o.columnNames.associateWith {
+                                    o.getString(o.columnNames.indexOf(it))
+                                }
+                            Log.i("outbox", associateWith.toString())
+                            o.moveToNext()
+                        }
+                    }
                 }
             }
         }
+
 
 
         if (startRequest != null) {
@@ -266,19 +254,22 @@ class SmsSender : Serializable, Service() {
     private fun runtime(): String {
         val runtime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Duration.of(System.currentTimeMillis(), ChronoUnit.MILLIS)
-        } else {
+        }
+        else {
             val dur = System.currentTimeMillis() - startTime
             var seconds = dur / 1000.0
             var minutes = seconds / 60
             var hours = minutes / 60
             if (hours >= 1) {
                 minutes -= (60 * hours)
-            } else {
+            }
+            else {
                 hours = 0.0
             }
             if (minutes >= 1) {
                 seconds -= (60 * minutes)
-            } else {
+            }
+            else {
                 minutes = 0.0
             }
             return "${hours}:$minutes:$seconds"
@@ -299,12 +290,6 @@ class SmsSender : Serializable, Service() {
     }
 
     private suspend fun sendMessage(destination: String, text: String, source: String? = null) {
-        if (messagesSent > 10) {
-
-//            while (cursor?.moveToNext() == true) {
-//                println(cursor.getTelephony.Sms.Outbox)
-//            }
-        }
         val sentIntent = PendingIntent.getBroadcast(
             applicationContext, 0, Intent(
                 MESSAGE_SENT_INTENT
