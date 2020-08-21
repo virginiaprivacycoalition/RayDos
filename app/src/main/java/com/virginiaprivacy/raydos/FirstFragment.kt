@@ -49,11 +49,11 @@ class FirstFragment : Fragment() {
     }
 
     private fun requestSmsPermission() =
-        requestPermissions(arrayOf(Manifest.permission.SEND_SMS), 1)
+        requestPermissions(arrayOf(Manifest.permission.SEND_SMS, Manifest.permission.READ_SMS), 1)
 
     private fun hasSendPermission(): Boolean =
          context.let {
-             it?.let { it1 -> ActivityCompat.checkSelfPermission(it1, Manifest.permission.SEND_SMS) } ==
+             it?.let { it1 -> ActivityCompat.checkSelfPermission(it1, Manifest.permission.SEND_SMS).and(ActivityCompat.checkSelfPermission(it1, Manifest.permission.READ_SMS)) } ==
                     PackageManager.PERMISSION_GRANTED
         }
 

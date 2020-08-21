@@ -36,7 +36,7 @@ android {
 
 dependencies {
     def lifecycle_version = "2.2.0"
-    def activity_version = "1.2.0-alpha07"
+    def activity_version = '1.2.0-alpha08'
 
     implementation 'app.cash.copper:copper-flow:1.0.0'
     implementation("com.louiscad.splitties:splitties-fun-pack-android-material-components-with-views-dsl:3.0.0-alpha06")
