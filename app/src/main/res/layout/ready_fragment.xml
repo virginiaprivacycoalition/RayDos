@@ -126,6 +126,30 @@
 
         <TableRow
             android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <TextView
+                android:id="@+id/runtime_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/runtime_label_text"
+                android:fontFamily="monospace"
+                android:labelFor="@id/runtime_value"
+                android:text="@string/runtime_label_content"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/runtime_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/current_runtime"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
             android:layout_height="match_parent">
 
             <Button
@@ -159,6 +183,7 @@
                 android:layout_gravity="center|center_horizontal|center_vertical"
                 android:text="@string/previous" />
         </TableRow>
+
     </TableLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

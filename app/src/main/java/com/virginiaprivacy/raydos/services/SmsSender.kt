@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.ContentObserver
 import android.os.Build
 import android.os.IBinder
 import android.provider.Telephony
@@ -188,23 +189,7 @@ class SmsSender : Serializable, Service() {
 
     private suspend fun start() {
         if (fireStartEvent()) return
-        coroutineScope {
-            withContext(Dispatchers.IO) {
-                measureTimeMillis {
-                    outbox!!.use { o ->
-                        o.moveToFirst()
-                        repeat(o.count) {
-                            val associateWith: Map<String, String> =
-                                o.columnNames.associateWith {
-                                    o.getString(o.columnNames.indexOf(it))
-                                }
-                            Log.i("outbox", associateWith.toString())
-                            o.moveToNext()
-                        }
-                    }
-                }
-            }
-        }
+        addOutboxListener()
 
 
 
@@ -230,6 +215,27 @@ class SmsSender : Serializable, Service() {
                 }
             }
             delay(startRequest!!.delayMillis.toLong())
+        }
+    }
+
+    private suspend fun addOutboxListener() {
+        coroutineScope {
+            withContext(Dispatchers.IO) {
+                measureTimeMillis {
+                    outbox.registerContentObserver(ContentObserver { })
+                    outbox!!.use { o ->
+                        o.moveToFirst()
+                        repeat(o.count) {
+                            val associateWith: Map<String, String> =
+                                o.columnNames.associateWith {
+                                    o.getString(o.columnNames.indexOf(it))
+                                }
+                            Log.i("outbox", associateWith.toString())
+                            o.moveToNext()
+                        }
+                    }
+                }
+            }
         }
     }
 
