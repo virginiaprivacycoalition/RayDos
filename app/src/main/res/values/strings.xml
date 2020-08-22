@@ -61,4 +61,7 @@
     <string name="sms_source_text_value">Edit source value</string>
     <string name="experimental_preference_title">Experimental</string>
     <string name="disabled_text">disabled</string>
+    <string name="runtime_label_text">The label for the amount of time the service has been running for</string>
+    <string name="runtime_label_content">Runtime:</string>
+    <string name="current_runtime">Current runtime</string>
 </resources>
