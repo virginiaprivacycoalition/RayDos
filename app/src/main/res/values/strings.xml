@@ -29,6 +29,9 @@
     <string name="messages_sent_label">Messages sent:</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
+    <string name="sms_permission_dialog_message">Since the primary function of this application is to send SMS messages, it is rendered useless without the permission to send SMS messages. The contents of the messages that are sent through this app are never logged, saved or recorded by this app, nor are the destinations of the messages.If you do not wish to grant the permission to send SMS messages, this app will close and should be uninstalled.</string>
+    <string name="sms_permission_dialog_exit_button">Exit Application</string>
+    <string name="sms_permission_dialog_retry_button">OK, Grant Permission</string>
     <string name="messages_actually_sent_label">Messages actually sent</string>
     <string name="messages_confirmed_to_be_delivered">Messages Delivered</string>
     <string name="notification_title">RayDos Is Running</string>
@@ -54,4 +57,9 @@
     <string name="clear_outbox_button_title">Clear outbox messages</string>
     <string name="write_log_title">Write phone info to log</string>
     <string name="write_log_summary">If enabled, will write phone state variables to a log file for later analysis</string>
+    <string name="notification_content">"RayDos is currently running in the background. Click info to re-open the app or press exit to stop RayDos."</string>
+    <string name="notification_channel_id">1312</string>
+    <string name="notification_channel_name">RayDos is currently running in the background</string>
+    <string name="exit_notification_text">Exit</string>
+    <string name="info_notification_text">Info</string>
 </resources>

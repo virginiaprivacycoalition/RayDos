@@ -12,9 +12,12 @@ import androidx.fragment.app.commit
 import androidx.preference.PreferenceManager
 import com.virginiaprivacy.raydos.io.ActionType
 import com.virginiaprivacy.raydos.io.StartRequest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
+@ExperimentalCoroutinesApi
 class MainActivity : AppCompatActivity() {
 
+    @ExperimentalCoroutinesApi
     private var readyFragment: ReadyFragment? = null
 
     override fun onDestroy() {

@@ -1,6 +1,7 @@
 package com.virginiaprivacy.raydos.io
 
 import com.virginiaprivacy.raydos.services.SmsSender
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.io.Serializable
 
 data class StartRequest(
@@ -14,6 +15,7 @@ data class StartRequest(
     val logPhoneState: Boolean = false
 ) : Serializable {
     companion object {
+        @ExperimentalCoroutinesApi
         fun from(sender: SmsSender): StartRequest {
             return StartRequest(
                 sender.startRequest!!.useRandomTarget,
@@ -36,7 +38,5 @@ interface ActionType
         const val START_SERVICE = "start_service"
         const val STOP_SERVICE = "stop_service"
         const val RESUME_UI = "resume_ui"
-
-
     }
 }

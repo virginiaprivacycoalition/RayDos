@@ -26,10 +26,12 @@ import com.virginiaprivacy.raydos.io.MessageReportReceiver
 import com.virginiaprivacy.raydos.io.SavedRunningScreenData
 import com.virginiaprivacy.raydos.io.StartRequest
 import com.virginiaprivacy.raydos.services.SmsSender
+import com.virginiaprivacy.raydos.services.listenByEventType
 import com.virginiaprivacy.raydos.settings.SettingsActivity
 import splitties.fragments.addToBackStack
 
 
+@ExperimentalCoroutinesApi
 class ReadyFragment : Fragment() {
 
     private val sentReportReceiver by lazy { MessageReportReceiver() }
@@ -179,19 +181,22 @@ class ReadyFragment : Fragment() {
         }
     }
 
+    @FlowPreview
     @ExperimentalCoroutinesApi
     private fun listenForUpdates() {
         val channel = SmsSender.eventBus.openSubscription()
         val iterator = channel.iterator()
         GlobalScope.launch {
+            listenByEventType<MessageSentEvent> { messagesAttempted.postValue(this.messageNumber) }
+        }
+        GlobalScope.launch {
+            listenByEventType<TargetNumberGeneratedEvent> { target.postValue(this.destination) }
+        }
+        GlobalScope.launch {
             while (iterator.hasNext()) {
                 val event = iterator.next()
                 with(event) {
                     when (this::class) {
-                        MessageSentEvent::class -> {
-                            messagesAttempted.postValue(
-                                (this as MessageSentEvent).messageNumber)
-                        }
                         TargetNumberGeneratedEvent::class -> {
                             target.postValue((this as TargetNumberGeneratedEvent).destination)
                         }
@@ -202,7 +207,7 @@ class ReadyFragment : Fragment() {
                 }
             }
         }
-    }
+        }
 
     private fun serviceIntent(actionType: String): Intent {
         if (actionType != ActionType.START_SERVICE && actionType != ActionType.STOP_SERVICE) {

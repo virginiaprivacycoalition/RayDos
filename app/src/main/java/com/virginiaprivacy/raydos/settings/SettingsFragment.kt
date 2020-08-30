@@ -55,7 +55,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                         ?.let { cursor ->
                             preference.summary =
                                 "There are currently ${cursor.columnCount} unsent messages in the outbox."
-                            close()
+                            cursor.close()
                         }
                 }
             }
