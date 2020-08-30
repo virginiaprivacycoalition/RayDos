@@ -3,99 +3,64 @@ package com.virginiaprivacy.raydos
 import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
-import androidx.appcompat.app.AppCompatActivity
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
-import androidx.core.app.NotificationManagerCompat
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.commit
 import androidx.preference.PreferenceManager
-import com.virginiaprivacy.raydos.events.ServiceStartedEvent
-import com.virginiaprivacy.raydos.settings.SettingsActivity
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.launch
+import com.virginiaprivacy.raydos.io.ActionType
+import com.virginiaprivacy.raydos.io.StartRequest
 
 class MainActivity : AppCompatActivity() {
 
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
+    private var readyFragment: ReadyFragment? = null
 
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d("Activity", "Destroy")
     }
 
+    override fun onPause() {
+        super.onPause()
+        supportFragmentManager.fragments.map { it::class.simpleName }
+            .forEach { println(it) }
+        Log.d("Activity", "paused")
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        setSupportActionBar(findViewById(R.id.toolbar))
-        findViewById<Button>(R.id.action_settings)
+        if (intent.action == ActionType.RESUME_UI) {
+            Log.d("MainActivity", "App resuming from notification bar")
+            setContentView(R.layout.activity_main)
+            
+            supportFragmentManager.commit {
+                this.replace(R.id.fragment_container_view, (readyFragment ?: ReadyFragment()).apply {
+                    serviceRunning.postValue(true)
+                    val startRequest = intent.getSerializableExtra("saved") as StartRequest
+                    messageText.postValue(startRequest.nonRandomText)
+                    target.postValue(startRequest.target)
+                    readyFragment = this
+                })
+            }
 
-//        if (savedInstanceState != null) {
-//            supportFragmentManager.getFragment(savedInstanceState, "ready_fragment")?.let {
-//                supportFragmentManager.beginTransaction()
-//                    .replace(R.id.nav_host_fragment_container,
-//                        it)
-//                    .commit()
-//                return
-//            }
-//        }
+            if (savedInstanceState != null) {
+                Log.d("MainActivity", "Saved instance exists $savedInstanceState")
+                return
+            }
+            setSupportActionBar(findViewById(R.id.toolbar))
+            findViewById<Button>(R.id.action_settings)
+        } else {
+            setContentView(R.layout.activity_main)
+            setSupportActionBar(findViewById(R.id.toolbar))
+            findViewById<Button>(R.id.action_settings)
+        }
+
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
-
-//        GlobalScope.launch {
-//            val iterator = SmsSender.eventBus.openSubscription().iterator()
-//            while (iterator.hasNext()) {
-//                val event = iterator.next()
-//                when (event::class) {
-//                    ServiceStartedEvent::class -> {
-//
-//
-//                    }
-//                }
-//            }
-//
-//
-//        }
     }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-    }
-
-//    fun beginReadyActivity() {
-//        val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
-//        val useRandomTarget = sharedPrefs
-//            .getBoolean(SettingsActivity.KEY_PREF_RANDOM_TARGET_SWITCH, false)
-//        val useRandomText = sharedPrefs
-//            .getBoolean(SettingsActivity.KEY_PREF_RANDOM_TEXT_SWITCH, false)
-//        val delay = Integer.parseInt(sharedPrefs.getString(SettingsActivity.KEY_PREF_DELAY_BETWEEN_MESSAGES, "1000"))
-//        val messageTarget = when (useRandomTarget) {
-//            true -> null
-//            else -> sharedPrefs
-//                .getString(SettingsActivity.KEY_PREF_TARGET_NUMBER_TEXT, "")
-//        }
-//        val messageText = when (useRandomText) {
-//            true -> null
-//            else -> sharedPrefs.getString(SettingsActivity.KEY_PREF_DEFAULT_MESSAGE_TEXT, "")
-//        }
-//        messageTarget?.let { target ->
-//                val readyFragment = ReadyFragment()
-//                val bundle = Bundle()
-//                val startRequest = messageText?.let { text ->
-//                    StartRequest(
-//                        useRandomTarget,
-//                        useRandomText,
-//                        delay,
-//                        target,
-//                        text
-//                    )
-//                }
-//                bundle.putSerializable("sms_sender", startRequest)
-//                readyFragment.arguments = bundle
-//
-//        }
-//    }
 
     override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
+        Log.d("ActivityPersistent", "saved: ${savedInstanceState.toString()} persistent: ${persistentState.toString()}")
         super.onCreate(savedInstanceState, persistentState)
     }
 
@@ -105,9 +70,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
             R.id.action_settings -> {
                 val intent = Intent(this,

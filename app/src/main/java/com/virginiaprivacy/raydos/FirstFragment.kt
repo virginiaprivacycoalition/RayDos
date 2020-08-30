@@ -4,19 +4,20 @@ import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Environment
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.core.app.ActivityCompat
+import androidx.fragment.app.commit
 import androidx.navigation.fragment.findNavController
 
 /**
  * A simple [Fragment] subclass as the default destination in the navigation.
  */
 class FirstFragment : Fragment() {
-
 
     override fun onCreateView(
             inflater: LayoutInflater, container: ViewGroup?,
@@ -29,12 +30,12 @@ class FirstFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-
         val next = nextButton(view)
         disableButton(next)
         next?.setOnClickListener {
-            (activity as MainActivity).beginReadyActivity()
-            findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
+            parentFragmentManager.commit {
+                replace(R.id.fragment_container_view, parentFragmentManager.findFragmentById(R.id.SecondFragment) ?: ReadyFragment())
+            }
         }
     }
 
@@ -53,8 +54,10 @@ class FirstFragment : Fragment() {
 
     private fun hasSendPermission(): Boolean =
          context.let {
-             it?.let { it1 -> ActivityCompat.checkSelfPermission(it1, Manifest.permission.SEND_SMS).and(ActivityCompat.checkSelfPermission(it1, Manifest.permission.READ_SMS)) } ==
-                    PackageManager.PERMISSION_GRANTED
+             it?.let { it1 -> 
+                 ActivityCompat.checkSelfPermission(it1, Manifest.permission.SEND_SMS)
+                     .and(ActivityCompat.checkSelfPermission(it1, Manifest.permission.READ_SMS)) 
+             } == PackageManager.PERMISSION_GRANTED
         }
 
     private fun nextButton(view: View): Button? = view.findViewById(R.id.button_first)
@@ -62,8 +65,7 @@ class FirstFragment : Fragment() {
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+        grantResults: IntArray) {
         println(grantResults.asList())
         if (!permissions.contentEquals(arrayOf(Manifest.permission.SEND_SMS))) {
             return
@@ -81,8 +83,6 @@ class FirstFragment : Fragment() {
                         (activity as MainActivity).finish()
                     }
                     show()
-
-
                 }
                 return@onRequestPermissionsResult
             }

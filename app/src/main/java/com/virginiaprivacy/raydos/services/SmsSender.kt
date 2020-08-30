@@ -1,14 +1,8 @@
 package com.virginiaprivacy.raydos.services
 
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.database.ContentObserver
 import android.os.Build
 import android.os.IBinder
 import android.provider.Telephony
@@ -16,16 +10,22 @@ import android.telephony.SmsManager
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.MutableLiveData
+import com.virginiaprivacy.raydos.MainActivity
 import com.virginiaprivacy.raydos.R
 import com.virginiaprivacy.raydos.events.*
 import com.virginiaprivacy.raydos.io.ActionType
 import com.virginiaprivacy.raydos.io.StartRequest
+import com.virginiaprivacy.raydos.models.TextMessage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import java.io.Serializable
 import java.time.Duration
 import java.time.temporal.ChronoUnit
@@ -38,51 +38,67 @@ import kotlin.system.measureTimeMillis
 class SmsSender : Serializable, Service() {
 
     private val startTime = System.currentTimeMillis()
-    private var startRequest: StartRequest? = null
+    var startRequest: StartRequest? = null
+
     private val scope = CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
+
+    private val textGenerator by lazy {
+        Json.decodeFromString(ListSerializer(TextMessage.serializer()),
+            assets.open("TextMessages.json").readBytes().decodeToString())
+    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private val channel: NotificationChannel =
         NotificationChannel(
             "1312",
             "RayDos is currently running in the background",
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
+            NotificationManager.IMPORTANCE_DEFAULT)
 
 
-    private fun getNotification() = NotificationCompat.Builder(this)
-            .setSmallIcon(R.drawable.fist)
+    private val notification by lazy {
+        NotificationCompat.Builder(this, "1312")
+            .setSmallIcon(R.drawable.running_icon)
             .setContentTitle(getString(R.string.notification_title))
             .setContentText("Running")
             .setChannelId("1312")
             .setUsesChronometer(true)
             .setWhen(startTime)
+//            .setContentIntent(PendingIntent.getActivity(this, ReadyFragment::class.java))
+//        .setContentIntent(PendingIntent.getActivity(baseContext, 1, Intent.makeMainActivity(
+//            ComponentName.createRelative(packageName, "ReadyFragment")), PendingIntent.FLAG_CANCEL_CURRENT))
+            .addAction(R.drawable.info_icon, "Info", TaskStackBuilder.create(this).run {
+                addNextIntentWithParentStack(Intent(this@SmsSender, MainActivity::class.java)
+                    .apply {
+                        action = ActionType.RESUME_UI
+                        putExtra("saved", StartRequest.from(this@SmsSender))
+                    })
+                    .getPendingIntent(0, PendingIntent.FLAG_CANCEL_CURRENT)
+            })
+//                Intent(createPackageContext(packageName, 0), MainActivity::class.java).apply {
+//                    action = ActionType.RESUME_UI
+//                }, 0, Bundle().also {
+//                    it.putSerializable("restored_values", StartRequest.from(this))
+//                }).)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)!!
+    }
 
 
     private val running = AtomicBoolean(false)
 
-    var messagesSent = 0
+    var logPhoneState = false
+
+    private var messagesSent = 0
 
     private val smsManager by lazy {
         SmsManager.getDefault()
     }
 
-    private val telephony by lazy {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getSystemService(TelephonyManager::class.java)
-        }
-        else {
-            TODO("VERSION.SDK_INT < M")
-        }
-    }
+    var useSourceField = false
 
-    private var useSourceField = false
+    var currentSource = ""
 
-    private var currentSource = ""
-
-    private var currentTarget: String = ""
+    var currentTarget: String = ""
         set(value) {
             field = value
             scope.launch { eventBus.send(TargetNumberGeneratedEvent(value)) }
@@ -94,15 +110,12 @@ class SmsSender : Serializable, Service() {
         }
     private var delay = 1000
 
-    private val currentRuntime =
-        MutableLiveData("Running for ${runtime()}. Sent $messagesSent messages")
-
     private val outbox by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             contentResolver.acquireContentProviderClient(Telephony.Sms.CONTENT_URI)
-                    ?.query(Telephony.Sms.CONTENT_URI, null, null, null, null)
-                    .let { return@lazy it }
+                ?.query(Telephony.Sms.CONTENT_URI, null, null, null, null)
+                .let { return@lazy it }
         }
         Log.e(
             javaClass.name,
@@ -123,8 +136,7 @@ class SmsSender : Serializable, Service() {
                 this.createNotificationChannel(channel)
             }
         }
-        val notification = getNotification().build()
-        startForeground(RAYDOS_NOTIFICATION_ID, notification)
+
 
 
     }
@@ -141,12 +153,19 @@ class SmsSender : Serializable, Service() {
                         if (!startRequest?.useRandomText!!) {
                             currentMessageText = startRequest?.nonRandomText.toString()
                         }
+                        else {
+                            scope.launch {
+                                currentMessageText = textGenerator.random().content
+                            }
+                        }
                         startRequest?.customSmsSource.let { use ->
                             if (use != null) {
                                 useSourceField = use
                                 currentSource = startRequest?.customSourceTarget.toString()
                             }
                         }
+                        val notification = notification.build()
+                        startForeground(RAYDOS_NOTIFICATION_ID, notification)
                         scope.launch {
                             start()
                         }
@@ -168,73 +187,46 @@ class SmsSender : Serializable, Service() {
         scope.cancel()
     }
 
-    private fun dumpTelephonyInfo() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-        telephony.allCellInfo.forEach {
-            println(it)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            telephony.carrierConfig.keySet().forEach {
-                println("$it -> ${telephony.carrierConfig[it]}")
-            }
-        }
-    }
-
 
     private suspend fun start() {
         if (fireStartEvent()) return
-        addOutboxListener()
 
-
+        scope.launch {
+            updateNotificationDescription()
+        }
 
         if (startRequest != null) {
+            logPhoneState = startRequest!!.logPhoneState
             currentTarget = when (startRequest!!.useRandomTarget) {
                 true -> getRandomNumber()
                 else -> startRequest?.target!!
             }
             currentMessageText = when (startRequest!!.useRandomText) {
-                true -> TODO("Random String generation fun")
+                true -> textGenerator.random().content
                 else -> startRequest?.nonRandomText!!
             }
             delay = if (startRequest?.delayMillis != null) startRequest?.delayMillis!! else delay
         }
         while (running.get()) {
             scope.launch {
-                sendMessage(currentTarget.toString(), currentMessageText)
+                sendMessage(currentTarget, currentMessageText)
                 if (startRequest?.useRandomTarget!!) {
                     currentTarget = getRandomNumber()
                 }
                 if (startRequest?.useRandomText!!) {
-                    currentMessageText = "this is the current message text"
+                    scope.launch {
+                        currentMessageText = textGenerator.random().content
+                    }
                 }
             }
             delay(startRequest!!.delayMillis.toLong())
         }
     }
 
-    private suspend fun addOutboxListener() {
-        coroutineScope {
-            withContext(Dispatchers.IO) {
-                measureTimeMillis {
-                    outbox.registerContentObserver(ContentObserver { })
-                    outbox!!.use { o ->
-                        o.moveToFirst()
-                        repeat(o.count) {
-                            val associateWith: Map<String, String> =
-                                o.columnNames.associateWith {
-                                    o.getString(o.columnNames.indexOf(it))
-                                }
-                            Log.i("outbox", associateWith.toString())
-                            o.moveToNext()
-                        }
-                    }
-                }
+    private suspend fun updateNotificationDescription() {
+        byEventType<MessageSentEvent> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                channel.description = "RayDos has sent ${this.messageNumber} messages this session."
             }
         }
     }
@@ -246,7 +238,7 @@ class SmsSender : Serializable, Service() {
             return true
         }
         running.set(true)
-        eventBus.send(ServiceStartedEvent(startTime, getNotification()))
+        eventBus.send(ServiceStartedEvent(startTime, notification))
         return false
     }
 
@@ -291,7 +283,7 @@ class SmsSender : Serializable, Service() {
                 number += Random.nextInt(0..9)
             }
         }
-        Log.d("SmsSender", "number generated in ${millis / 1000.00} seconds")
+        Log.v("SmsSender", "number generated in ${millis / 1000.00} seconds")
         return number
     }
 
@@ -306,7 +298,7 @@ class SmsSender : Serializable, Service() {
                 MESSAGE_DELIVERED_INTENT
             ), 0
         )
-        var src: String? = when (useSourceField) {
+        val src: String? = when (useSourceField) {
             true -> currentSource
             else -> null
         }
@@ -330,8 +322,8 @@ class SmsSender : Serializable, Service() {
         const val RAYDOS_NOTIFICATION_ID = 11913
         val eventBus: BroadcastChannel<Event> = BroadcastChannel(Channel.BUFFERED)
     }
-
-
 }
 
-
+suspend inline fun <reified T> byEventType(crossinline run: T.() -> Unit) {
+     return SmsSender.eventBus.asFlow().filterIsInstance<T>().collect { it.run() }
+}

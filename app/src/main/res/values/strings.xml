@@ -8,23 +8,13 @@
     <string name="previous">Previous</string>
 
     <string name="hello_first_fragment">Hello first fragment</string>
-    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="random_target_switch_title">Use random target</string>
     <string name="random_target_switch_summary">When enabled, will use a random email or number as the target</string>
     <!-- Preference Titles -->
-    <string name="messages_header">Messages</string>
-    <string name="sync_header">Sync</string>
 
     <!-- Messages Preferences -->
-    <string name="signature_title">Your signature</string>
-    <string name="reply_title">Default reply action</string>
 
     <!-- Sync Preferences -->
-    <string name="sync_title">Sync email periodically</string>
-    <string name="attachment_title">Download incoming attachments</string>
-    <string name="attachment_summary_on">Automatically download attachments for incoming emails
-    </string>
-    <string name="attachment_summary_off">Only download attachments when manually requested</string>
     <string name="random_text_summary">Use random computer generated text for each SMS sent by this app</string>
     <string name="random_text_title">Use random text</string>
     <string name="target_number_text_title">Edit target number</string>
@@ -35,14 +25,10 @@
     <string name="target_label_text">Target:</string>
     <string name="delay_between_messages_summary">Sets the delay between each message sent</string>
     <string name="delay_between_messages_title">Delay between each message</string>
-    <string name="first_button_begin">Begin</string>
     <string name="message_text">Message text:</string>
     <string name="messages_sent_label">Messages sent:</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
-    <string name="sms_permission_dialog_message">Since the primary function of this application is to send SMS messages, it is rendered useless without the permission to send SMS messages. The contents of the messages that are sent through this app are never logged, saved or recorded by this app, nor are the destinations of the messages.If you do not wish to grant the permission to send SMS messages, this app will close and should be uninstalled.</string>
-    <string name="sms_permission_dialog_exit_button">Exit Application</string>
-    <string name="sms_permission_dialog_retry_button">OK, Grant Permission</string>
     <string name="messages_actually_sent_label">Messages actually sent</string>
     <string name="messages_confirmed_to_be_delivered">Messages Delivered</string>
     <string name="notification_title">RayDos Is Running</string>
@@ -64,4 +50,8 @@
     <string name="runtime_label_text">The label for the amount of time the service has been running for</string>
     <string name="runtime_label_content">Runtime:</string>
     <string name="current_runtime">Current runtime</string>
+    <string name="clear_outbox_button_desc">Deletes all unsent messages in the outbox. May help if messages are failing to send.</string>
+    <string name="clear_outbox_button_title">Clear outbox messages</string>
+    <string name="write_log_title">Write phone info to log</string>
+    <string name="write_log_summary">If enabled, will write phone state variables to a log file for later analysis</string>
 </resources>

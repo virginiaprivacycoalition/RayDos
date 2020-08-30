@@ -8,5 +8,4 @@ data class SavedRunningScreenData(
     val messagesDelivered: Int,
     val messagesSent: Int,
     val startTime: Long
-) : Serializable {
-}
+) : Serializable

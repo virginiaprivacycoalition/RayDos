@@ -22,6 +22,7 @@ class SettingsActivity : AppCompatActivity() {
         const val KEY_PREF_DELAY_BETWEEN_MESSAGES = "delay_between_messages"
         const val KEY_PREF_USE_CUSTOM_SOURCE = "sms_source"
         const val KEY_PREF_CUSTOM_SOURCE = "sms_source_manual"
+        const val KEY_PREF_WRITE_LOG_FILE = "write_log_file"
 
     }
 }

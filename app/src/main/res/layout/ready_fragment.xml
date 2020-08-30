@@ -17,7 +17,6 @@
             android:layout_height="match_parent">
 
             <TextView
-                android:id="@+id/messages_sent_label"
                 style="@style/Base.Widget.MaterialComponents.TextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -41,7 +40,6 @@
             android:layout_height="match_parent">
 
             <TextView
-                android:id="@+id/target_text_label"
                 android:contentDescription="@string/target_label_content"
                 android:fontFamily="monospace"
                 android:labelFor="@id/target_text_value"
@@ -60,7 +58,6 @@
             android:layout_height="match_parent">
 
             <TextView
-                android:id="@+id/message_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/the_contents_of_the_next_sms_message_to_be_sent"
@@ -84,7 +81,6 @@
             android:layout_height="match_parent" >
 
             <TextView
-                android:id="@+id/messages_actually_sent_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/number_of_messages_that_have_been_actually_sent_content"
@@ -106,7 +102,6 @@
             android:layout_height="match_parent" >
 
             <TextView
-                android:id="@+id/messages_delivered_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/messages_delivered_label_content"
@@ -129,7 +124,6 @@
             android:layout_height="match_parent" >
 
             <TextView
-                android:id="@+id/runtime_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/runtime_label_text"
@@ -165,7 +159,6 @@
             android:layout_height="54dp">
 
             <View
-                android:id="@+id/divider"
                 android:layout_width="match_parent"
                 android:layout_height="10dp"
                 android:background="?android:attr/listDivider" />

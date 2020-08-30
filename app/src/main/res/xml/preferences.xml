@@ -2,9 +2,7 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory
-        android:id="@+id/general_preference_category"
-        android:title="@string/general_preference_category_title">
+    <PreferenceCategory android:title="@string/general_preference_category_title">
 
         <SwitchPreferenceCompat
             android:defaultValue="false"
@@ -41,9 +39,7 @@
             android:summary="@string/default_message_text_summary"
             android:title="@string/default_message_text_title" />
     </PreferenceCategory>
-    <PreferenceCategory
-        android:id="@+id/experimental_preference_category"
-        android:title="@string/experimental_preference_title">
+    <PreferenceCategory android:title="@string/experimental_preference_title">
 
         <SwitchPreference
             android:defaultValue="false"
@@ -57,5 +53,14 @@
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:title="@string/sms_source_text_value" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="write_log_file"
+            android:summary="@string/write_log_summary"
+            android:title="@string/write_log_title" />
+        <Preference
+            android:key="clear_outbox"
+            android:title="@string/clear_outbox_button_title"
+            android:summary="@string/clear_outbox_button_desc" />
     </PreferenceCategory>
 </PreferenceScreen>

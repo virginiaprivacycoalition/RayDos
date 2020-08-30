@@ -1,6 +1,5 @@
 package com.virginiaprivacy.raydos
 
-import android.Manifest
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
@@ -13,10 +12,10 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.annotation.RequiresApi
+import androidx.fragment.app.commit
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.observe
-import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
 import com.virginiaprivacy.raydos.events.MessageSentEvent
@@ -28,36 +27,22 @@ import com.virginiaprivacy.raydos.io.SavedRunningScreenData
 import com.virginiaprivacy.raydos.io.StartRequest
 import com.virginiaprivacy.raydos.services.SmsSender
 import com.virginiaprivacy.raydos.settings.SettingsActivity
+import splitties.fragments.addToBackStack
 
 
-class ReadyFragment() : Fragment() {
-
-    val scope = MainScope()
+class ReadyFragment : Fragment() {
 
     private val sentReportReceiver by lazy { MessageReportReceiver() }
     private val deliveredReportReceiver by lazy { MessageReportReceiver() }
     private var savedState: SavedRunningScreenData? = null
-    private val serviceRunning = MutableLiveData(false)
+    val serviceRunning = MutableLiveData(false)
     private val messagesAttempted = MutableLiveData(0)
     private val messagesDelivered = MutableLiveData(0)
     private val messagesActuallySent = MutableLiveData(0)
-    private val target = MutableLiveData("")
-    private val messageText = MutableLiveData("")
-
-    private fun getTxtView(id: Int) = requireView().findViewById<TextView>(id)
-
-
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        savedInstanceState?.let {
-//            val saved: SavedRunningScreenData = it.get(STATE) as SavedRunningScreenData
-//            running = true
-//            getTxtView(R.id.messages_sent_value).text = saved.messagesAttempted.toString()
-//        }
-//    }
+    val target = MutableLiveData("")
+    val messageText = MutableLiveData("")
 
     override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
         outState.putSerializable(
             STATE, if (savedState != null) {
                 savedState
@@ -65,33 +50,62 @@ class ReadyFragment() : Fragment() {
                 save()
             }
         )
+        super.onSaveInstanceState(outState)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        retainInstance = true;
+        Log.d("ReadyFragment OnCreate", savedInstanceState.toString())
+        retainInstance = true
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?)
-    {
+    @ExperimentalCoroutinesApi
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
+        Log.d("Ready", savedInstanceState.toString())
         loadSavedFromBundle(savedInstanceState)
         view?.let {
             listenForUpdates()
             addObservers(it)
         }
-
     }
 
-    private fun save(): SavedRunningScreenData
-    {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        Log.d("ReadyCreateView", savedInstanceState.toString())
+        loadSavedFromBundle(savedInstanceState)
+        return inflater.inflate(R.layout.ready_fragment, container, false)
+    }
+
+    @ExperimentalCoroutinesApi
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        view.findViewById<Button>(R.id.button_second).setOnClickListener {
+            parentFragmentManager.commit {
+                setReorderingAllowed(true)
+                addToBackStack()
+                replace(R.id.fragment_container_view, parentFragmentManager.findFragmentById(R.id.FirstFragment) ?: FirstFragment())
+            }
+        }
+        listenForUpdates()
+        addObservers(view)
+
+        loadSavedFromBundle(savedInstanceState)
+        registerReceiver(sentReportReceiver, messagesAttempted)
+        registerReceiver(deliveredReportReceiver, messagesDelivered)
+        registerStartButtonListener(view)
+    }
+
+    private fun save(): SavedRunningScreenData {
         return SavedRunningScreenData(
             serviceRunning.value!!,
             messagesAttempted.value!!,
             messagesDelivered.value!!,
             messagesActuallySent.value!!,
-            0
-        )
+            0)
     }
 
     private fun loadSaved(savedState: SavedRunningScreenData) {
@@ -102,79 +116,37 @@ class ReadyFragment() : Fragment() {
         messagesDelivered.value = savedState.messagesDelivered
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        loadSavedFromBundle(savedInstanceState)
-        return inflater.inflate(R.layout.ready_fragment, container, false)
-    }
-
     @RequiresApi(Build.VERSION_CODES.O)
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        view.findViewById<Button>(R.id.button_second).setOnClickListener {
-            findNavController().navigate(R.id.action_SecondFragment_to_FirstFragment)
-        }
-        listenForUpdates()
-        addObservers(view)
-
-        loadSavedFromBundle(savedInstanceState)
-
-
-        registerReceiver(sentReportReceiver, messagesAttempted)
-        registerReceiver(deliveredReportReceiver, messagesDelivered)
-
-        registerStartButtonListener(view)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun registerStartButtonListener(view: View)
-    {
+    private fun registerStartButtonListener(view: View) {
         val startButton = view.findViewById<Button>(R.id.start_button)
-
         val startRequest = serviceIntent(ActionType.START_SERVICE)
         val stopRequest = serviceIntent(ActionType.STOP_SERVICE)
 
         startButton.setOnClickListener {
-            if (serviceRunning.value!!)
-            {
+            if (serviceRunning.value!!) {
                 serviceRunning.value = false
                 (activity as MainActivity).stopService(stopRequest)
             }
-            else
-            {
+            else {
                 serviceRunning.value = true
                 (requireActivity() as MainActivity).startForegroundService(startRequest)
             }
         }
     }
 
-    private fun loadSavedFromBundle(savedInstanceState: Bundle?)
-    {
-        fun loadSaved(savedState: SavedRunningScreenData) {
-            Log.d("ReadyFragment", savedState.toString())
-            serviceRunning.value = savedState.running
-            messagesAttempted.value = savedState.messagesAttempted
-            messagesActuallySent.value = savedState.messagesSent
-            messagesDelivered.value = savedState.messagesDelivered
-        }
-        if (savedState == null && savedInstanceState != null)
-        {
+    private fun loadSavedFromBundle(savedInstanceState: Bundle?) {
+        if (savedState == null && savedInstanceState != null) {
             savedState = savedInstanceState.getSerializable(STATE) as SavedRunningScreenData
         }
-        if (savedState != null)
-        {
+        if (savedState != null) {
             loadSaved(savedState!!)
         }
     }
 
-    private fun registerReceiver(messageReportReceiver: MessageReportReceiver, fieldToUpdate: MutableLiveData<*>)
-    {
+    private fun registerReceiver(messageReportReceiver: MessageReportReceiver, fieldToUpdate: MutableLiveData<*>) {
         requireActivity().registerReceiver(
             messageReportReceiver,
-            IntentFilter(SmsSender.MESSAGE_DELIVERED_INTENT)
-        )
+            IntentFilter(SmsSender.MESSAGE_DELIVERED_INTENT))
         messageReportReceiver.eventsReceived.observe(viewLifecycleOwner, Observer {
             fieldToUpdate.value = it
         })
@@ -207,6 +179,7 @@ class ReadyFragment() : Fragment() {
         }
     }
 
+    @ExperimentalCoroutinesApi
     private fun listenForUpdates() {
         val channel = SmsSender.eventBus.openSubscription()
         val iterator = channel.iterator()
@@ -260,6 +233,7 @@ class ReadyFragment() : Fragment() {
         val useSmsSource = prefs.getBoolean(SettingsActivity.KEY_PREF_USE_CUSTOM_SOURCE, false)
         val smsCustomSource = prefs.getString(SettingsActivity.KEY_PREF_CUSTOM_SOURCE, getString(R.string.disabled_text))
         val defaultText = prefs.getString(SettingsActivity.KEY_PREF_DEFAULT_MESSAGE_TEXT, "")
+        val logPhoneState = prefs.getBoolean(SettingsActivity.KEY_PREF_WRITE_LOG_FILE, false)
         return StartRequest(
             useRandomTarget,
             useRandomMessageText,
@@ -267,7 +241,8 @@ class ReadyFragment() : Fragment() {
             targetNumber,
             defaultText,
             useSmsSource,
-            smsCustomSource
+            smsCustomSource,
+            logPhoneState
         )
     }
 
@@ -276,11 +251,5 @@ class ReadyFragment() : Fragment() {
     }
 }
 
-fun <T> nn(first: T?, second: T?): T {
-    return when (first == null) {
-        true -> second!!
-        else -> first
-    }
-}
 
 
