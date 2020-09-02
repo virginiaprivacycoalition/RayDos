@@ -5,19 +5,18 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.annotation.RequiresApi
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.observe
 import androidx.preference.PreferenceManager
-import kotlinx.coroutines.*
 import com.virginiaprivacy.raydos.events.MessageSentEvent
 import com.virginiaprivacy.raydos.events.TargetNumberGeneratedEvent
 import com.virginiaprivacy.raydos.events.TextGeneratedEvent
@@ -28,6 +27,10 @@ import com.virginiaprivacy.raydos.io.StartRequest
 import com.virginiaprivacy.raydos.services.SmsSender
 import com.virginiaprivacy.raydos.services.listenByEventType
 import com.virginiaprivacy.raydos.settings.SettingsActivity
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import splitties.fragments.addToBackStack
 
 
@@ -48,7 +51,8 @@ class ReadyFragment : Fragment() {
         outState.putSerializable(
             STATE, if (savedState != null) {
                 savedState
-            } else {
+            }
+            else {
                 save()
             }
         )
@@ -61,6 +65,7 @@ class ReadyFragment : Fragment() {
         retainInstance = true
     }
 
+    @FlowPreview
     @ExperimentalCoroutinesApi
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
@@ -81,6 +86,7 @@ class ReadyFragment : Fragment() {
         return inflater.inflate(R.layout.ready_fragment, container, false)
     }
 
+    @FlowPreview
     @ExperimentalCoroutinesApi
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -89,7 +95,8 @@ class ReadyFragment : Fragment() {
             parentFragmentManager.commit {
                 setReorderingAllowed(true)
                 addToBackStack()
-                replace(R.id.fragment_container_view, parentFragmentManager.findFragmentById(R.id.FirstFragment) ?: FirstFragment())
+                replace(R.id.fragment_container_view,
+                    InfoItemFragment())
             }
         }
         listenForUpdates()
@@ -145,7 +152,8 @@ class ReadyFragment : Fragment() {
         }
     }
 
-    private fun registerReceiver(messageReportReceiver: MessageReportReceiver, fieldToUpdate: MutableLiveData<*>) {
+    private fun registerReceiver(messageReportReceiver: MessageReportReceiver,
+        fieldToUpdate: MutableLiveData<*>) {
         requireActivity().registerReceiver(
             messageReportReceiver,
             IntentFilter(SmsSender.MESSAGE_DELIVERED_INTENT))
@@ -184,8 +192,6 @@ class ReadyFragment : Fragment() {
     @FlowPreview
     @ExperimentalCoroutinesApi
     private fun listenForUpdates() {
-        val channel = SmsSender.eventBus.openSubscription()
-        val iterator = channel.iterator()
         GlobalScope.launch {
             listenByEventType<MessageSentEvent> { messagesAttempted.postValue(this.messageNumber) }
         }
@@ -193,21 +199,9 @@ class ReadyFragment : Fragment() {
             listenByEventType<TargetNumberGeneratedEvent> { target.postValue(this.destination) }
         }
         GlobalScope.launch {
-            while (iterator.hasNext()) {
-                val event = iterator.next()
-                with(event) {
-                    when (this::class) {
-                        TargetNumberGeneratedEvent::class -> {
-                            target.postValue((this as TargetNumberGeneratedEvent).destination)
-                        }
-                        TextGeneratedEvent::class -> {
-                            messageText.postValue((this as TextGeneratedEvent).text)
-                        }
-                    }
-                }
-            }
+            listenByEventType<TextGeneratedEvent> { messageText.postValue(this.text) }
         }
-        }
+    }
 
     private fun serviceIntent(actionType: String): Intent {
         if (actionType != ActionType.START_SERVICE && actionType != ActionType.STOP_SERVICE) {
@@ -220,23 +214,24 @@ class ReadyFragment : Fragment() {
         return intent
     }
 
-    private fun newStartRequest(view: View): StartRequest
-    {
+    private fun newStartRequest(view: View): StartRequest {
         val prefs = PreferenceManager.getDefaultSharedPreferences(view.context)
         val useRandomTarget =
             prefs.getBoolean(SettingsActivity.KEY_PREF_RANDOM_TARGET_SWITCH, false)
         val targetNumber = prefs
-            .getString(SettingsActivity.KEY_PREF_TARGET_NUMBER_TEXT, getString(R.string.disabled_text))
+            .getString(SettingsActivity.KEY_PREF_TARGET_NUMBER_TEXT,
+                getString(R.string.disabled_text))
         val useRandomMessageText =
             prefs.getBoolean(SettingsActivity.KEY_PREF_RANDOM_TEXT_SWITCH, false)
         val delay = Integer.parseInt(
             prefs.getString(
                 SettingsActivity.KEY_PREF_DELAY_BETWEEN_MESSAGES,
-                "1000"
+                "3000"
             ).toString()
         )
         val useSmsSource = prefs.getBoolean(SettingsActivity.KEY_PREF_USE_CUSTOM_SOURCE, false)
-        val smsCustomSource = prefs.getString(SettingsActivity.KEY_PREF_CUSTOM_SOURCE, getString(R.string.disabled_text))
+        val smsCustomSource = prefs.getString(SettingsActivity.KEY_PREF_CUSTOM_SOURCE,
+            getString(R.string.disabled_text))
         val defaultText = prefs.getString(SettingsActivity.KEY_PREF_DEFAULT_MESSAGE_TEXT, "")
         val logPhoneState = prefs.getBoolean(SettingsActivity.KEY_PREF_WRITE_LOG_FILE, false)
         return StartRequest(

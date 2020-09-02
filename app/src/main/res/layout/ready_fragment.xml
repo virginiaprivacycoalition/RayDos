@@ -58,22 +58,28 @@
             android:layout_height="match_parent">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:breakStrategy="balanced"
                 android:contentDescription="@string/the_contents_of_the_next_sms_message_to_be_sent"
                 android:fontFamily="monospace"
                 android:labelFor="@id/message_text_value"
+                android:minLines="5"
                 android:text="@string/message_text"
                 android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/message_text_value"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:breakStrategy="balanced"
                 android:contentDescription="@string/the_sms_message_content"
                 android:fontFamily="monospace"
+                android:maxWidth="100dip"
+                android:scrollbarTrackHorizontal="?android:attr/scrollbarThumbHorizontal"
                 android:singleLine="false"
-                android:textSize="14sp"  />
+                android:textSize="14sp"
+                app:autoSizeTextType="uniform" />
         </TableRow>
 
         <TableRow

@@ -18,33 +18,23 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 class MainActivity : AppCompatActivity() {
 
     @ExperimentalCoroutinesApi
-    private var readyFragment: ReadyFragment? = null
+    var readyFragment: ReadyFragment? = null
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("Activity", "Destroy")
-    }
-
-    override fun onPause() {
-        super.onPause()
-        supportFragmentManager.fragments.map { it::class.simpleName }
-            .forEach { println(it) }
-        Log.d("Activity", "paused")
-    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (intent.action == ActionType.RESUME_UI) {
             Log.d("MainActivity", "App resuming from notification bar")
             setContentView(R.layout.activity_main)
-            
+
             supportFragmentManager.commit {
-                this.replace(R.id.fragment_container_view, (readyFragment ?: ReadyFragment()).apply {
-                    serviceRunning.postValue(true)
-                    val startRequest = intent.getSerializableExtra("saved") as StartRequest
-                    messageText.postValue(startRequest.nonRandomText)
-                    target.postValue(startRequest.target)
-                    readyFragment = this
-                })
+                this.replace(R.id.fragment_container_view,
+                    (readyFragment ?: ReadyFragment()).apply {
+                        serviceRunning.postValue(true)
+                        val startRequest = intent.getSerializableExtra("saved") as StartRequest
+                        messageText.postValue(startRequest.nonRandomText)
+                        target.postValue(startRequest.target)
+                        readyFragment = this
+                    })
             }
 
             if (savedInstanceState != null) {
@@ -53,8 +43,14 @@ class MainActivity : AppCompatActivity() {
             }
             setSupportActionBar(findViewById(R.id.toolbar))
             findViewById<Button>(R.id.action_settings)
-        } else {
-            setContentView(R.layout.activity_main)
+        }
+        else {
+             setContentView(R.layout.activity_main)
+
+            supportFragmentManager.commit {
+                replace(R.id.fragment_container_view, InfoItemFragment())
+            }
+
             setSupportActionBar(findViewById(R.id.toolbar))
             findViewById<Button>(R.id.action_settings)
         }
@@ -63,7 +59,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
-        Log.d("ActivityPersistent", "saved: ${savedInstanceState.toString()} persistent: ${persistentState.toString()}")
+        Log.d("ActivityPersistent",
+            "saved: ${savedInstanceState.toString()} persistent: ${persistentState.toString()}")
         super.onCreate(savedInstanceState, persistentState)
     }
 

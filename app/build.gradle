@@ -12,14 +12,14 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlinx-serialization'
 android {
     compileSdkVersion 30
-    buildToolsVersion '30.0.1'
+    buildToolsVersion '30.0.2'
 
     defaultConfig {
         applicationId "com.virginiaprivacy.raydos"
         minSdkVersion 21
         targetSdkVersion 30
         versionCode 1
-        versionName "1.0.3-BETA"
+        versionName '1.0.4-BETA'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -44,6 +44,8 @@ android {
 
 dependencies {
     implementation files('libs/rita.jar')
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
     def lifecycle_version = "2.2.0"
     def activity_version = '1.2.0-alpha08'
 
