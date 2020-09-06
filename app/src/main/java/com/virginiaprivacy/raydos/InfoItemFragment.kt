@@ -2,19 +2,28 @@ package com.virginiaprivacy.raydos
 
 import android.Manifest
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.fragment.app.commit
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.virginiaprivacy.raydos.infoitem.InfoItem
+import com.virginiaprivacy.raydos.settings.SettingsActivity
+import jp.wasabeef.recyclerview.animators.LandingAnimator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import ru.tinkoff.scrollingpagerindicator.ScrollingPagerIndicator
+import splitties.views.onClick
+
 
 /**
  * A fragment representing a list of Items.
@@ -32,25 +41,33 @@ class InfoItemFragment : Fragment() {
         }
     }
 
-    private val firstInfoItem = InfoItem(getString(R.string.info_item_1_title),
-        listOf(getString(R.string.info_item_details_1),
-            getString(R.string.info_item_details_2),
-            getString(R.string.info_item_details_3),
-            getString(R.string.info_item_details_4)))
+    private val firstInfoItem by lazy {
+        InfoItem(getString(R.string.info_item_1_title),
+            listOf(getString(R.string.info_item_details_1),
+                getString(R.string.info_item_details_2),
+                getString(R.string.info_item_details_3),
+                getString(R.string.info_item_details_4)))
+    }
 
-    private val secondInfoItem = InfoItem(getString(R.string.info_item_2_title),
-        listOf(getString(R.string.info_item_details_5),
-            getString(R.string.info_item_details_6),
-            getString(R.string.info_item_details_7),
-            getString(R.string.info_item_details_8)))
+    private val secondInfoItem by lazy {
+        InfoItem(getString(R.string.info_item_2_title),
+            listOf(getString(R.string.info_item_details_5),
+                getString(R.string.info_item_details_6),
+                getString(R.string.info_item_details_7),
+                getString(R.string.info_item_details_8)))
+    }
 
-    private val thirdInfoItem = InfoItem(getString(R.string.info_item_3_title),
-        listOf(getString(R.string.info_item_details_9),
-            getString(R.string.info_item_details_10),
-            getString(R.string.info_item_details_11)))
+    private val thirdInfoItem by lazy {
+        InfoItem(getString(R.string.info_item_3_title),
+            listOf(getString(R.string.info_item_details_9),
+                getString(R.string.info_item_details_10),
+                getString(R.string.info_item_details_11)))
+    }
 
-    private val fourthInfoItem = InfoItem(getString(R.string.info_item_4_title),
-        listOf(getString(R.string.info_item_details_12)))
+    private val fourthInfoItem by lazy {
+        InfoItem(getString(R.string.info_item_4_title),
+            listOf(getString(R.string.info_item_details_12)))
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?): View? {
@@ -62,12 +79,35 @@ class InfoItemFragment : Fragment() {
         infoItems += thirdInfoItem
         infoItems += fourthInfoItem
         val rv = view.findViewById<RecyclerView>(R.id.info_item_rv)
-        rv.layoutManager = LinearLayoutManager(view.context)
+        rv.layoutManager = LinearLayoutManager(view.context, LinearLayoutManager.HORIZONTAL, false)
         rv.adapter = InfoItemAdapter(infoItems, requireContext())
-
         rv.setHasFixedSize(true)
-        rv.addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.VERTICAL))
-        disableButton(nextButton(view))
+        LinearSnapHelper().attachToRecyclerView(rv)
+        rv.itemAnimator = LandingAnimator()
+        //rv.addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.VERTICAL))
+        val recyclerIndicator: ScrollingPagerIndicator =
+            view.findViewById(R.id.indicator)
+        recyclerIndicator.attachToRecyclerView(rv)
+        val useRandomTarget = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(SettingsActivity.KEY_PREF_RANDOM_TARGET_SWITCH, false)
+        val targetText = MainActivity.prefs.pull<String>(SettingsActivity.KEY_PREF_TARGET_NUMBER_TEXT, "")
+        val continueButton = view.findViewById<Button>(R.id.continue_button)
+        val configureButton = view.findViewById<Button>(R.id.configure_button)
+        val errorText = view.findViewById<TextView>(R.id.info_error_message)
+
+        if (!useRandomTarget && targetText.length <= 1) {
+            errorText.text = "Destination number is not correctly configured"
+            errorText.visibility = TextView.VISIBLE
+            continueButton.isEnabled = false
+        }
+        configureButton.onClick {
+            val intent = Intent(context, SettingsActivity::class.java)
+            startActivity(intent)
+        }
+        continueButton.onClick {
+            parentFragmentManager.commit {
+                replace(R.id.fragment_container_view, (activity as MainActivity).readyFragment!!)
+            }
+        }
 
         return view
     }
@@ -96,20 +136,6 @@ class InfoItemFragment : Fragment() {
                 }
                 return@onRequestPermissionsResult
             }
-            nextButton(it).run {
-                this?.isClickable = true
-                this?.isEnabled = true
-            }
-        }
-    }
-
-    private fun disableButton(next: Button?) {
-        context?.let {
-            if (!hasSendPermission()) {
-                next?.isEnabled = false
-                next?.isClickable = false
-                requestSmsPermission()
-            }
         }
     }
 
@@ -123,8 +149,6 @@ class InfoItemFragment : Fragment() {
                     .and(ActivityCompat.checkSelfPermission(it1, Manifest.permission.READ_SMS))
             } == PackageManager.PERMISSION_GRANTED
         }
-
-    private fun nextButton(view: View): Button? = view.findViewById(R.id.info_item_button)
 
     companion object {
 

@@ -24,5 +24,6 @@
         <item>2000</item>
         <item>3000</item>
         <item>5000</item>
-        <item>10000</item>    </string-array>
+        <item>10000</item>
+    </string-array>
 </resources>

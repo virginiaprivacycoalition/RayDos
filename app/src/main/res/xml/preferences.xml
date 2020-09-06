@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory android:title="@string/general_preference_category_title">
 
@@ -11,14 +11,24 @@
             android:title="@string/random_target_switch_title"
             app:disableDependentsState="true" />
         <EditTextPreference
-            android:dependency="random_target_switch"
+            android:background="#FFFFFF"
+            android:foreground="#03DAC5"
+            android:icon="@android:drawable/stat_sys_phone_call"
             android:key="target_number_text"
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:summary="@string/target_number_text_summary"
-            android:title="@string/target_number_text_title" />
+            android:title="@string/target_number_text_title"
+            app:icon="@android:drawable/stat_sys_phone_call" />
+        <EditTextPreference
+            android:defaultValue=""
+            android:key="area_code"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Area Code"
+            app:summary="When using randomly generated targets, setting this will only use targets with this area code." />
         <ListPreference
-            android:defaultValue="1000"
+            android:defaultValue="3000"
             android:entries="@array/delay_entries"
             android:entryValues="@array/delay_values"
             android:key="delay_between_messages"
@@ -37,7 +47,8 @@
             android:selectAllOnFocus="true"
             android:singleLine="false"
             android:summary="@string/default_message_text_summary"
-            android:title="@string/default_message_text_title" />
+            android:title="@string/default_message_text_title"
+            app:icon="@android:drawable/ic_menu_edit" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/experimental_preference_title">
 
@@ -60,7 +71,7 @@
             android:title="@string/write_log_title" />
         <Preference
             android:key="clear_outbox"
-            android:title="@string/clear_outbox_button_title"
-            android:summary="@string/clear_outbox_button_desc" />
+            android:summary="@string/clear_outbox_button_desc"
+            android:title="@string/clear_outbox_button_title" />
     </PreferenceCategory>
 </PreferenceScreen>

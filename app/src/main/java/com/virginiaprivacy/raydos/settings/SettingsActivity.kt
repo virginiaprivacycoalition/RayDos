@@ -1,7 +1,7 @@
 package com.virginiaprivacy.raydos.settings
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,6 +23,6 @@ class SettingsActivity : AppCompatActivity() {
         const val KEY_PREF_USE_CUSTOM_SOURCE = "sms_source"
         const val KEY_PREF_CUSTOM_SOURCE = "sms_source_manual"
         const val KEY_PREF_WRITE_LOG_FILE = "write_log_file"
-
+        const val KEY_PREF_AREA_CODE = "area_code"
     }
 }

@@ -5,5 +5,5 @@ import androidx.core.app.NotificationCompat
 data class ServiceStartedEvent(
     val startTime: Long,
     val notification: NotificationCompat.Builder
-): Event
+) : Event
 

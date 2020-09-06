@@ -1,5 +1,6 @@
 package com.virginiaprivacy.raydos
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
@@ -10,30 +11,42 @@ import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import androidx.preference.PreferenceManager
+import com.cioccarellia.ksprefs.KsPrefs
 import com.virginiaprivacy.raydos.io.ActionType
 import com.virginiaprivacy.raydos.io.StartRequest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import splitties.alertdialog.appcompat.alertDialog
 
 @ExperimentalCoroutinesApi
 class MainActivity : AppCompatActivity() {
 
     @ExperimentalCoroutinesApi
     var readyFragment: ReadyFragment? = null
+    get() {
+        if (field == null) {
+            field = ReadyFragment()
+        }
+        return field
+    }
+
+    private val infoItemFragment: InfoItemFragment by lazy {
+        InfoItemFragment()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        appContext = this
         if (intent.action == ActionType.RESUME_UI) {
             Log.d("MainActivity", "App resuming from notification bar")
             setContentView(R.layout.activity_main)
 
             supportFragmentManager.commit {
                 this.replace(R.id.fragment_container_view,
-                    (readyFragment ?: ReadyFragment()).apply {
+                    readyFragment!!.apply {
                         serviceRunning.postValue(true)
                         val startRequest = intent.getSerializableExtra("saved") as StartRequest
                         messageText.postValue(startRequest.nonRandomText)
                         target.postValue(startRequest.target)
-                        readyFragment = this
                     })
             }
 
@@ -45,10 +58,24 @@ class MainActivity : AppCompatActivity() {
             findViewById<Button>(R.id.action_settings)
         }
         else {
-             setContentView(R.layout.activity_main)
+            setContentView(R.layout.activity_main)
+            if (!prefs.pull("approved_guidelines", false)) {
+                alertDialog {
+                    this.setTitle(getString(R.string.usage_guidelines_title))
+                    setMessage(getString(R.string.usage_guidelines_message))
+                    setPositiveButton(getString(R.string.usage_guidelines_positive_button)) { dialog, _ ->
+                        dialog.dismiss()
+                        prefs.push("approved_guidelines", true)
+                    }
+                    setNegativeButton(getString(R.string.usage_guidelines_negative_button)) { dialog, _ ->
+                        dialog.dismiss()
+                        finish()
+                    }
+                }.show()
+            }
 
             supportFragmentManager.commit {
-                replace(R.id.fragment_container_view, InfoItemFragment())
+                replace(R.id.fragment_container_view, infoItemFragment)
             }
 
             setSupportActionBar(findViewById(R.id.toolbar))
@@ -79,5 +106,10 @@ class MainActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    companion object {
+        lateinit var appContext: Context
+        val prefs by lazy { KsPrefs(appContext) }
     }
 }

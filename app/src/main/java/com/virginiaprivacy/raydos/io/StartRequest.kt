@@ -31,10 +31,8 @@ data class StartRequest(
     }
 }
 
-interface ActionType
-{
-    companion object
-    {
+interface ActionType {
+    companion object {
         const val START_SERVICE = "start_service"
         const val STOP_SERVICE = "stop_service"
         const val RESUME_UI = "resume_ui"

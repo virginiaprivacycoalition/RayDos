@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.IBinder
 import android.telephony.SmsManager
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.virginiaprivacy.raydos.MainActivity
 import com.virginiaprivacy.raydos.R
@@ -15,6 +14,7 @@ import com.virginiaprivacy.raydos.events.*
 import com.virginiaprivacy.raydos.io.ActionType
 import com.virginiaprivacy.raydos.io.StartRequest
 import com.virginiaprivacy.raydos.models.TextMessage
+import com.virginiaprivacy.raydos.settings.SettingsActivity
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
@@ -37,7 +37,13 @@ class SmsSender : Serializable, Service() {
     var logPhoneState = false
     var useSourceField = false
     var currentSource = ""
+        set(value) {
+            field = value
+            scope.launch { eventBus.send(SourceNumberGenerated(value)) }
+        }
 
+    private var areaCode = ""
+    
     private val startTime = System.currentTimeMillis()
     private val scope = CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
     private val running = AtomicBoolean(false)
@@ -62,31 +68,34 @@ class SmsSender : Serializable, Service() {
                 notificationChannelId,
                 getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_DEFAULT)
-        } else {
+        }
+        else {
             TODO("VERSION.SDK_INT < O")
         }
     }
 
     private val notification by lazy {
         NotificationCompat.Builder(this, notificationChannelId)
-        .setSmallIcon(R.drawable.running_icon)
-        .setContentTitle(getString(R.string.notification_title))
-        .setContentText(getString(R.string.notification_content))
-        .setChannelId(notificationChannelId)
-        .setUsesChronometer(true)
-        .setWhen(startTime)
-        .addAction(R.drawable.info_icon, getString(R.string.info_notification_text), TaskStackBuilder.create(this).run {
-            addNextIntentWithParentStack(Intent(this@SmsSender, MainActivity::class.java)
-                .apply {
-                    action = ActionType.RESUME_UI
-                    putExtra("saved", StartRequest.from(this@SmsSender))
+            .setSmallIcon(R.drawable.running_icon)
+            .setContentTitle(getString(R.string.notification_title))
+            .setContentText(getString(R.string.notification_content))
+            .setChannelId(notificationChannelId)
+            .setUsesChronometer(true)
+            .setWhen(startTime)
+            .addAction(R.drawable.info_icon,
+                getString(R.string.info_notification_text),
+                TaskStackBuilder.create(this).run {
+                    addNextIntentWithParentStack(Intent(this@SmsSender, MainActivity::class.java)
+                        .apply {
+                            action = ActionType.RESUME_UI
+                            putExtra("saved", StartRequest.from(this@SmsSender))
+                        })
+                        .getPendingIntent(0, PendingIntent.FLAG_CANCEL_CURRENT)
                 })
-                .getPendingIntent(0, PendingIntent.FLAG_CANCEL_CURRENT)
-        })
-        .setOngoing(true)
-        .addAction(R.drawable.exit_icon, getString(R.string.exit_notification_text), PendingIntent.getService(applicationContext,
-            1, Intent(ActionType.STOP_SERVICE), PendingIntent.FLAG_CANCEL_CURRENT))
-        .setPriority(NotificationCompat.PRIORITY_DEFAULT)!!
+            .setOngoing(true)
+//        .addAction(R.drawable.exit_icon, getString(R.string.exit_notification_text), PendingIntent.getService(applicationContext,
+//            1, Intent(ActionType.STOP_SERVICE), PendingIntent.FLAG_CANCEL_CURRENT))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)!!
     }
 
     @ExperimentalCoroutinesApi
@@ -118,6 +127,7 @@ class SmsSender : Serializable, Service() {
 
     }
 
+    @FlowPreview
     @ExperimentalCoroutinesApi
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let {
@@ -126,11 +136,17 @@ class SmsSender : Serializable, Service() {
                     this.startRequest = it.getSerializableExtra("start_request") as StartRequest
                     if (!running.get()) {
                         if (startRequest?.useRandomTarget!!) {
+                            val savedAreaCode =
+                                MainActivity.prefs.pull(SettingsActivity.KEY_PREF_AREA_CODE, "")
+                            if (savedAreaCode.length == 3) {
+                                areaCode = savedAreaCode
+                            }
                             currentTarget = getRandomNumber()
                         }
                         if (!startRequest?.useRandomText!!) {
                             currentMessageText = startRequest?.nonRandomText.toString()
-                        } else {
+                        }
+                        else {
                             scope.launch {
                                 currentMessageText = textGenerator.random().content
                             }
@@ -164,6 +180,7 @@ class SmsSender : Serializable, Service() {
         scope.cancel()
     }
 
+    @FlowPreview
     @ExperimentalCoroutinesApi
     private suspend fun start() {
         if (fireStartEvent()) return
@@ -195,11 +212,15 @@ class SmsSender : Serializable, Service() {
                         currentMessageText = textGenerator.random().content
                     }
                 }
+                if (startRequest?.customSmsSource!!) {
+                    currentSource = getRandomNumber()
+                }
             }
             delay(startRequest!!.delayMillis.toLong())
         }
     }
 
+    @FlowPreview
     private suspend fun updateNotificationDescription() {
         listenByEventType<MessageSentEvent> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -228,6 +249,9 @@ class SmsSender : Serializable, Service() {
 
     private fun getRandomNumber(): String {
         var number = ""
+        if (areaCode.length == 3) {
+            number += areaCode
+        }
         val millis = measureTimeMillis {
             while (number.length < 9) {
                 number += Random.nextInt(0..9)
@@ -238,7 +262,7 @@ class SmsSender : Serializable, Service() {
     }
 
     @ExperimentalCoroutinesApi
-    private suspend fun sendMessage(destination: String, text: String, source: String? = null) {
+    private suspend fun sendMessage(destination: String, text: String) {
         val sentIntent = PendingIntent.getBroadcast(
             applicationContext, 0, Intent(
                 MESSAGE_SENT_INTENT
@@ -272,6 +296,7 @@ class SmsSender : Serializable, Service() {
         const val MESSAGE_SENT_INTENT = "SMS_SENT_ACTION"
         const val MESSAGE_DELIVERED_INTENT = "SMS_DELIVERED_ACTION"
         const val RAYDOS_NOTIFICATION_ID = 11913
+
         @ExperimentalCoroutinesApi
         val eventBus: BroadcastChannel<Event> = BroadcastChannel(Channel.BUFFERED)
     }

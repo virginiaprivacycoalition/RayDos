@@ -18,6 +18,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.observe
 import androidx.preference.PreferenceManager
 import com.virginiaprivacy.raydos.events.MessageSentEvent
+import com.virginiaprivacy.raydos.events.SourceNumberGenerated
 import com.virginiaprivacy.raydos.events.TargetNumberGeneratedEvent
 import com.virginiaprivacy.raydos.events.TextGeneratedEvent
 import com.virginiaprivacy.raydos.io.ActionType
@@ -44,6 +45,7 @@ class ReadyFragment : Fragment() {
     private val messagesAttempted = MutableLiveData(0)
     private val messagesDelivered = MutableLiveData(0)
     private val messagesActuallySent = MutableLiveData(0)
+    private val messageSource = MutableLiveData("")
     val target = MutableLiveData("")
     val messageText = MutableLiveData("")
 
@@ -187,6 +189,9 @@ class ReadyFragment : Fragment() {
                 this.text = it
             }
         }
+        messageSource.observe(viewLifecycleOwner, {
+            v.findViewById<TextView>(R.id.runtime_value).text = it
+        })
     }
 
     @FlowPreview
@@ -200,6 +205,11 @@ class ReadyFragment : Fragment() {
         }
         GlobalScope.launch {
             listenByEventType<TextGeneratedEvent> { messageText.postValue(this.text) }
+        }
+        GlobalScope.launch {
+            listenByEventType<SourceNumberGenerated> {
+                messageSource.postValue(this.source)
+            }
         }
     }
 
