@@ -1,39 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        android:key="random_target_switch"
-        android:summary="@string/random_target_switch_summary"
-        android:title="@string/random_target_switch_title"
-        app:disableDependentsState="true" />
-    <EditTextPreference
-        android:dependency="random_target_switch"
-        android:key="target_number_text"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:summary="@string/target_number_text_summary"
-        android:title="@string/target_number_text_title" />
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        android:key="random_text_switch"
-        android:title="@string/random_text_title"
-        android:summary="@string/random_text_summary"
-        app:disableDependentsState="true"/>
-    <EditTextPreference
-        android:defaultValue="@string/default_message_text_default_value"
-        android:dependency="random_text_switch"
-        android:key="default_message_text"
-        android:selectAllOnFocus="true"
-        android:singleLine="false"
-        android:title="@string/default_message_text_title"
-        android:summary="@string/default_message_text_summary"/>
-    <ListPreference
-        android:key="delay_between_messages"
-        android:title="@string/delay_between_messages_title"
-        android:summary="@string/delay_between_messages_summary"
-        android:entries="@array/delay_entries"
-        android:entryValues="@array/delay_values"
-        android:defaultValue="1000"/>
+    <PreferenceCategory android:title="@string/general_preference_category_title">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="random_target_switch"
+            android:summary="@string/random_target_switch_summary"
+            android:title="@string/random_target_switch_title"
+            app:disableDependentsState="true" />
+        <EditTextPreference
+            android:background="#FFFFFF"
+            android:foreground="#03DAC5"
+            android:icon="@android:drawable/stat_sys_phone_call"
+            android:key="target_number_text"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="@string/target_number_text_summary"
+            android:title="@string/target_number_text_title"
+            app:icon="@android:drawable/stat_sys_phone_call" />
+        <EditTextPreference
+            android:defaultValue=""
+            android:key="area_code"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="Area Code"
+            app:summary="When using randomly generated targets, setting this will only use targets with this area code." />
+        <ListPreference
+            android:defaultValue="3000"
+            android:entries="@array/delay_entries"
+            android:entryValues="@array/delay_values"
+            android:key="delay_between_messages"
+            android:summary="@string/delay_between_messages_summary"
+            android:title="@string/delay_between_messages_title" />
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="random_text_switch"
+            android:summary="@string/random_text_summary"
+            android:title="@string/random_text_title"
+            app:disableDependentsState="true" />
+        <EditTextPreference
+            android:defaultValue="@string/default_message_text_default_value"
+            android:dependency="random_text_switch"
+            android:key="default_message_text"
+            android:selectAllOnFocus="true"
+            android:singleLine="false"
+            android:summary="@string/default_message_text_summary"
+            android:title="@string/default_message_text_title"
+            app:icon="@android:drawable/ic_menu_edit" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/experimental_preference_title">
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="sms_source"
+            android:summary="@string/sms_source_switch_summary"
+            android:title="@string/sms_source_title" />
+        <EditTextPreference
+            android:defaultValue="@string/sms_source_default_value"
+            android:dependency="sms_source"
+            android:key="sms_source_manual"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/sms_source_text_value" />
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="write_log_file"
+            android:summary="@string/write_log_summary"
+            android:title="@string/write_log_title" />
+        <Preference
+            android:key="clear_outbox"
+            android:summary="@string/clear_outbox_button_desc"
+            android:title="@string/clear_outbox_button_title" />
+    </PreferenceCategory>
 </PreferenceScreen>
