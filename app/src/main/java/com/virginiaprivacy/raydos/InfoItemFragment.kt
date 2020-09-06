@@ -80,7 +80,7 @@ class InfoItemFragment : Fragment() {
         infoItems += fourthInfoItem
         val rv = view.findViewById<RecyclerView>(R.id.info_item_rv)
         rv.layoutManager = LinearLayoutManager(view.context, LinearLayoutManager.HORIZONTAL, false)
-        rv.adapter = InfoItemAdapter(infoItems, requireContext())
+        rv.adapter = InfoItemAdapter(infoItems)
         rv.setHasFixedSize(true)
         LinearSnapHelper().attachToRecyclerView(rv)
         rv.itemAnimator = LandingAnimator()
@@ -89,13 +89,13 @@ class InfoItemFragment : Fragment() {
             view.findViewById(R.id.indicator)
         recyclerIndicator.attachToRecyclerView(rv)
         val useRandomTarget = PreferenceManager.getDefaultSharedPreferences(context).getBoolean(SettingsActivity.KEY_PREF_RANDOM_TARGET_SWITCH, false)
-        val targetText = MainActivity.prefs.pull<String>(SettingsActivity.KEY_PREF_TARGET_NUMBER_TEXT, "")
+        val targetText = MainActivity.prefs.pull(SettingsActivity.KEY_PREF_TARGET_NUMBER_TEXT, "")
         val continueButton = view.findViewById<Button>(R.id.continue_button)
         val configureButton = view.findViewById<Button>(R.id.configure_button)
         val errorText = view.findViewById<TextView>(R.id.info_error_message)
 
         if (!useRandomTarget && targetText.length <= 1) {
-            errorText.text = "Destination number is not correctly configured"
+            errorText.text = getString(R.string.destination_number_error_message)
             errorText.visibility = TextView.VISIBLE
             continueButton.isEnabled = false
         }

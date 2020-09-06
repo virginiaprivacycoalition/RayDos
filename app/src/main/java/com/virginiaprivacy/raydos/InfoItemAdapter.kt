@@ -1,6 +1,5 @@
 package com.virginiaprivacy.raydos
 
-import android.content.Context
 import android.graphics.Color
 import android.os.Build
 import android.text.SpannableString
@@ -18,7 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 @ExperimentalCoroutinesApi
 class InfoItemAdapter(
-    private val values: List<InfoItem>, private val context: Context)
+    private val values: List<InfoItem>)
     : RecyclerView.Adapter<InfoItemAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -87,7 +86,6 @@ class InfoItemAdapter(
         var titleView: TextView? = view.findViewById(R.id.item_info_title)
         var detailsView: TextView? = view.findViewById(R.id.info_item_details)
         var aboutHeader: TextView? = view.findViewById(R.id.last_page_header)
-        var aboutContent: TextView? = view.findViewById(R.id.about_content)
 
         override fun toString(): String {
             return super.toString() + " '" + detailsView?.text + "'"
