@@ -82,4 +82,5 @@
     <string name="usage_guidelines_negative_button">Quit</string>
     <string name="configure">Configure</string>
     <string name="last_page_header">About</string>
+    <string name="destination_number_error_message">Destination number is not correctly configured</string>
 </resources>
