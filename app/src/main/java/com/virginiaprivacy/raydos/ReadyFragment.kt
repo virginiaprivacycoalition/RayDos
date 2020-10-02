@@ -214,11 +214,17 @@ class ReadyFragment : Fragment() {
     }
 
     private fun serviceIntent(actionType: String): Intent {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(view?.context)
+        val areaCode = prefs.getString(SettingsActivity.KEY_PREF_AREA_CODE, "")
+
         if (actionType != ActionType.START_SERVICE && actionType != ActionType.STOP_SERVICE) {
             throw (IllegalArgumentException())
         }
         val startRequest = newStartRequest(requireView())
         val intent = Intent(requireActivity(), SmsSender::class.java)
+        if (areaCode != null && areaCode.isNotEmpty()) {
+            intent.putExtra(SettingsActivity.KEY_PREF_AREA_CODE, areaCode)
+        }
         intent.action = actionType
         intent.putExtra("start_request", startRequest)
         return intent

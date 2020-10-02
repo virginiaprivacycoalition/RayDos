@@ -132,6 +132,9 @@ class SmsSender : Serializable, Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let {
             if (it.action == ActionType.START_SERVICE) {
+                if (it.hasExtra(SettingsActivity.KEY_PREF_AREA_CODE)) {
+                    areaCode = it.getStringExtra(SettingsActivity.KEY_PREF_AREA_CODE) ?: ""
+                }
                 if (it.getSerializableExtra("start_request") is StartRequest) {
                     this.startRequest = it.getSerializableExtra("start_request") as StartRequest
                     if (!running.get()) {
