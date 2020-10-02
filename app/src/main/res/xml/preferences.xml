@@ -19,6 +19,7 @@
             android:singleLine="true"
             android:summary="@string/target_number_text_summary"
             android:title="@string/target_number_text_title"
+            android:dependency="random_target_switch"
             app:icon="@android:drawable/stat_sys_phone_call" />
         <EditTextPreference
             android:defaultValue=""
